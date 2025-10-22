@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "840140708321",
+    "project_id": "event-management-27827",
+    "storage_bucket": "event-management-27827.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:840140708321:android:b1f76031209ff9136b1aa0",
+        "android_client_info": {
+          "package_name": "com.example.eventease"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCRdhnkG8Ayb4UiJx4T0vkyGcN0uF_Ai1I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
