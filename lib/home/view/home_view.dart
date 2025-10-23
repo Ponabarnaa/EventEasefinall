@@ -4,15 +4,47 @@ import '../controller/home_controller.dart';
 import '../model/home_model.dart';
 import '../../auth/controller/auth_controller.dart'; // To handle sign out
 
-class HomeView extends StatelessWidget {
+class HomeView extends StatefulWidget {
   const HomeView({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    // Instantiate controllers
-    final HomeController homeController = HomeController();
-    final AuthController authController = AuthController();
+  State<HomeView> createState() => _HomeViewState();
+}
 
+class _HomeViewState extends State<HomeView> {
+  // Create controller once and keep it
+  late final HomeController _homeController;
+  late final AuthController _authController;
+
+  // Store the event lists directly instead of streams
+  late final List<Event> _upcomingEvents;
+  late final List<Event> _pastEvents;
+
+  @override
+  void initState() {
+    super.initState();
+    _homeController = HomeController();
+    _authController = AuthController();
+
+    // Get the events once during initialization
+    final now = DateTime.now();
+    final allEvents = _homeController.getAllEvents();
+
+    _upcomingEvents =
+        allEvents
+            .where(
+              (event) =>
+                  event.date.isAfter(now) || event.date.isAtSameMomentAs(now),
+            )
+            .toList()
+          ..sort((a, b) => a.date.compareTo(b.date));
+
+    _pastEvents = allEvents.where((event) => event.date.isBefore(now)).toList()
+      ..sort((a, b) => b.date.compareTo(a.date));
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return DefaultTabController(
       length: 2, // Two tabs: Upcoming and Past
       child: Scaffold(
@@ -28,7 +60,7 @@ class HomeView extends StatelessWidget {
               tooltip: 'Sign Out',
               onPressed: () {
                 // Call the AuthController to sign out
-                authController.signOut();
+                _authController.signOut();
                 // The AuthGate in main.dart will handle navigation
               },
             ),
@@ -45,10 +77,10 @@ class HomeView extends StatelessWidget {
         body: TabBarView(
           children: [
             // --- UPCOMING EVENTS TAB ---
-            EventList(stream: homeController.getUpcomingEvents()),
+            StaticEventList(events: _upcomingEvents),
 
             // --- PAST EVENTS TAB ---
-            EventList(stream: homeController.getPastEvents()),
+            StaticEventList(events: _pastEvents),
           ],
         ),
       ),
@@ -56,53 +88,31 @@ class HomeView extends StatelessWidget {
   }
 }
 
-/// A reusable widget to display a list of events from a stream.
-class EventList extends StatelessWidget {
-  final Stream<List<Event>> stream;
+/// A reusable widget to display a static list of events (no streams).
+class StaticEventList extends StatelessWidget {
+  final List<Event> events;
 
-  const EventList({Key? key, required this.stream}) : super(key: key);
+  const StaticEventList({Key? key, required this.events}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<List<Event>>(
-      stream: stream,
-      builder: (context, snapshot) {
-        // 1. Loading State
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
+    // If no events, show empty state
+    if (events.isEmpty) {
+      return const Center(
+        child: Text(
+          'No events found.',
+          style: TextStyle(fontSize: 16, color: Colors.grey),
+        ),
+      );
+    }
 
-        // 2. Error State
-        if (snapshot.hasError) {
-          // You can log the error: print(snapshot.error);
-          return const Center(
-            child: Text(
-              'Error loading events.\nHave you created the Firestore index?',
-              textAlign: TextAlign.center,
-            ),
-          );
-        }
-
-        // 3. No Data State
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Center(
-            child: Text(
-              'No events found.',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-          );
-        }
-
-        // 4. Data Ready State
-        final events = snapshot.data!;
-        return ListView.builder(
-          itemCount: events.length,
-          padding: const EdgeInsets.all(8.0),
-          itemBuilder: (context, index) {
-            final event = events[index];
-            return EventCard(event: event);
-          },
-        );
+    // Display the events
+    return ListView.builder(
+      itemCount: events.length,
+      padding: const EdgeInsets.all(8.0),
+      itemBuilder: (context, index) {
+        final event = events[index];
+        return EventCard(event: event);
       },
     );
   }

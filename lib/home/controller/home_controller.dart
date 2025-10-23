@@ -57,6 +57,11 @@ class HomeController {
     ),
   ];
 
+  /// Gets all static events
+  List<Event> getAllEvents() {
+    return _staticEvents;
+  }
+
   /// Gets a stream of UPCOMING events.
   Stream<List<Event>> getUpcomingEvents() {
     final now = DateTime.now();
@@ -72,8 +77,8 @@ class HomeController {
     // Sort them to show the nearest event first
     upcoming.sort((a, b) => a.date.compareTo(b.date));
 
-    // Return the list as a stream to satisfy the StreamBuilder
-    return Stream.value(upcoming);
+    // Return the list as a broadcast stream to allow multiple listeners
+    return Stream.value(upcoming).asBroadcastStream();
   }
 
   /// Gets a stream of PAST events.
@@ -88,7 +93,7 @@ class HomeController {
     // Sort them to show the most recent past event first
     past.sort((a, b) => b.date.compareTo(a.date));
 
-    // Return the list as a stream
-    return Stream.value(past);
+    // Return the list as a broadcast stream to allow multiple listeners
+    return Stream.value(past).asBroadcastStream();
   }
 }
