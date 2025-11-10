@@ -22,31 +22,58 @@ class EventEaseApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Define a primary color for a clean, academic look
+    const Color primaryColor = Colors.indigo; 
+
     return MaterialApp(
       title: 'EventEase',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        // Use Material 3 ColorScheme for modern styling
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: primaryColor,
+          brightness: Brightness.light,
+        ),
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
-        // Define a nice theme for your buttons and fields
+        
+        // **Typography:** Use a clean, modern font if desired (or default)
+        textTheme: const TextTheme(
+          headlineLarge: TextStyle(fontWeight: FontWeight.w800),
+          titleLarge: TextStyle(fontWeight: FontWeight.w700),
+        ),
+
+        // **Input Fields:** Keep a professional, M3-style look
         inputDecorationTheme: InputDecorationTheme(
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12.0),
+            borderRadius: BorderRadius.circular(16.0), // Slightly rounded corners
+            borderSide: BorderSide.none, // Remove border for a cleaner look
           ),
           filled: true,
-          fillColor: Colors.grey[100],
+          fillColor: primaryColor.withOpacity(0.05), // Light background tint
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 18.0),
         ),
+
+        // **Elevated Button:** Use the theme's colors
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12.0),
+              borderRadius: BorderRadius.circular(16.0),
             ),
             padding: const EdgeInsets.symmetric(vertical: 16.0),
-            backgroundColor: Colors.blueAccent,
+            backgroundColor: primaryColor, // Use the primary color
             foregroundColor: Colors.white,
-            textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            elevation: 2,
           ),
+        ),
+        
+        // **AppBar:** Set a clean, consistent look
+        appBarTheme: AppBarTheme(
+          backgroundColor: primaryColor,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          centerTitle: false,
+          titleTextStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white),
         ),
       ),
       // Start your app at the login/register screen
