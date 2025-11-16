@@ -146,19 +146,18 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                 Text(
                   _isLogin ? 'Welcome Back to EventEase' : 'Create Account',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white, // White color for visibility
-                      ),
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white, // White color for visibility
+                  ),
                 ),
                 const SizedBox(height: 8),
 
                 // --- Subtitle (Updated color to white70) ---
                 Text(
                   _isLogin ? 'Log in to continue' : 'Sign up to get started',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(color: Colors.white70), // Light color for visibility
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Colors.white70,
+                  ), // Light color for visibility
                 ),
                 const SizedBox(height: 32),
 
@@ -166,7 +165,8 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                 Card(
                   elevation: 8,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(20.0),
                     child: Form(
@@ -246,9 +246,12 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                               child: ElevatedButton(
                                 onPressed: _trySubmitForm,
                                 style: ElevatedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
                                   shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12)),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                   // Set a nice primary color
                                 ),
                                 child: Text(
@@ -265,7 +268,8 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                               onPressed: () {
                                 setState(() {
                                   _isLogin = !_isLogin; // Toggle mode
-                                  _formKey.currentState?.reset(); // Clear form fields
+                                  _formKey.currentState
+                                      ?.reset(); // Clear form fields
                                 });
                               },
                               child: Text(
