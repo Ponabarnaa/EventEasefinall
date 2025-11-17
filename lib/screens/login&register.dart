@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:lottie/lottie.dart';
 
-import 'home_screen.dart'; // <-- ADDED THIS IMPORT
+import 'home_screen.dart';
+import 'admin_home_screen.dart'; // <-- NEW: Import for Admin Home Screen
 
 class LoginRegisterScreen extends StatefulWidget {
   const LoginRegisterScreen({super.key});
@@ -18,6 +19,9 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  // NEW: State variable for role selection
+  String _selectedRole = 'User'; // Default role
+
   // Text controllers
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -32,7 +36,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
     super.dispose();
   }
 
-  // --- Main submission function (Unchanged) ---
+  // --- Main submission function (UPDATED for Role-Based Navigation) ---
   void _trySubmitForm() async {
     final isValid = _formKey.currentState?.validate() ?? false;
     FocusScope.of(context).unfocus(); // Close keyboard
@@ -67,14 +71,26 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
         await userCredential.user?.updateDisplayName(
           _usernameController.text.trim(),
         );
-        // You would also save this to a 'users' collection in Firestore
+        // NOTE: For a real app, you would also save the _selectedRole to Firestore/Database
+        // with the user ID at this point.
       }
 
-      // --- NEW NAVIGATION LOGIC ---
+      // --- NEW ROLE-BASED NAVIGATION LOGIC ---
       if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-        );
+        Widget nextScreen;
+
+        // This is where you decide the destination based on the selected role.
+        // NOTE: In a production app, you would verify the role from a database
+        // after login, not just rely on the user's selected role on the login screen.
+        if (_selectedRole == 'Admin') {
+          nextScreen = const AdminHomeScreen();
+        } else {
+          nextScreen = const HomeScreen();
+        }
+
+        Navigator.of(
+          context,
+        ).pushReplacement(MaterialPageRoute(builder: (context) => nextScreen));
       }
     } on FirebaseAuthException catch (e) {
       String message = 'An error occurred. Please check your credentials.';
@@ -107,7 +123,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
     }
   }
 
-  // --- BUILD METHOD ---
+  // --- BUILD METHOD (UPDATED with Role Dropdown) ---
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -131,9 +147,6 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // ⭐️ REMOVED: Image.asset('assets/mca_logo.jpg', ...)
-                // The image is now the background of the whole screen.
-
                 // --- Lottie Animation ---
                 Lottie.asset(
                   'assets/Login animation.json',
@@ -174,6 +187,38 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          // --- Role Dropdown (NEW) ---
+                          DropdownButtonFormField<String>(
+                            initialValue: _selectedRole,
+                            decoration: const InputDecoration(
+                              labelText: 'Select Role',
+                              prefixIcon: Icon(Icons.security),
+                              border: OutlineInputBorder(),
+                            ),
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'User',
+                                child: Text('User'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'Admin',
+                                child: Text('Admin'),
+                              ),
+                            ],
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedRole = value!;
+                              });
+                            },
+                            validator: (value) {
+                              if (value == null) {
+                                return 'Please select a role.';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+
                           // --- Username Field (Register only) ---
                           if (!_isLogin)
                             TextFormField(
@@ -270,6 +315,8 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                                   _isLogin = !_isLogin; // Toggle mode
                                   _formKey.currentState
                                       ?.reset(); // Clear form fields
+                                  _selectedRole =
+                                      'User'; // Reset role on toggle
                                 });
                               },
                               child: Text(
