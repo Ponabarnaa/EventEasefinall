@@ -21,9 +21,11 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   String _currentFilter = 'All';
 
+  // --- MODIFIED: Added UserProfileScreen to the list ---
   static const List<Widget> _userPages = <Widget>[
     UserEventListPage(),
     UserEventRequestScreen(),
+    UserProfileScreen(), // New profile page
   ];
 
   void _onItemTapped(int index) {
@@ -47,70 +49,79 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   AppBar _buildAppBar() {
+    String title;
+    // --- MODIFIED: Handle title for all 3 tabs ---
+    switch (_selectedIndex) {
+      case 0:
+        title = 'Event Hub';
+        break;
+      case 1:
+        title = 'My Event Requests';
+        break;
+      case 2:
+        title = 'My Profile';
+        break;
+      default:
+        title = 'EventEase';
+    }
+
+    // Only show filter on the first page
+    List<Widget> actions = [
+      IconButton(
+        icon: const Icon(Icons.logout),
+        tooltip: 'Sign Out',
+        onPressed: _signOut,
+      ),
+    ];
+
     if (_selectedIndex == 0) {
-      // AppBar for "Home" (Event List)
-      return AppBar(
-        title: const Text('Event Hub'),
-        backgroundColor: Colors.red.shade900,
-        actions: [
-          PopupMenuButton<String>(
-            onSelected: (String result) {
-              setState(() {
-                _currentFilter = result;
-              });
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Filter set to: $_currentFilter')),
-              );
-            },
-            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-              const PopupMenuItem<String>(value: 'All', child: Text('All')),
-              const PopupMenuItem<String>(
-                value: 'Upcoming',
-                child: Text('Upcoming'),
-              ),
-              const PopupMenuItem<String>(
-                value: 'Ongoing',
-                child: Text('Ongoing'),
-              ),
-              const PopupMenuItem<String>(
-                value: 'Completed',
-                child: Text('Completed'),
-              ),
-            ],
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: Row(
-                children: [
-                  Text(
-                    _currentFilter,
-                    style: const TextStyle(color: Colors.white, fontSize: 16),
-                  ),
-                  const Icon(Icons.filter_list, color: Colors.white),
-                ],
-              ),
+      actions.insert(
+        0,
+        PopupMenuButton<String>(
+          onSelected: (String result) {
+            setState(() {
+              _currentFilter = result;
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Filter set to: $_currentFilter')),
+            );
+          },
+          itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+            const PopupMenuItem<String>(value: 'All', child: Text('All')),
+            const PopupMenuItem<String>(
+              value: 'Upcoming',
+              child: Text('Upcoming'),
+            ),
+            const PopupMenuItem<String>(
+              value: 'Ongoing',
+              child: Text('Ongoing'),
+            ),
+            const PopupMenuItem<String>(
+              value: 'Completed',
+              child: Text('Completed'),
+            ),
+          ],
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Row(
+              children: [
+                Text(
+                  _currentFilter,
+                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                ),
+                const Icon(Icons.filter_list, color: Colors.white),
+              ],
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Sign Out',
-            onPressed: _signOut,
-          ),
-        ],
-      );
-    } else {
-      // AppBar for "Messages" (Event Request)
-      return AppBar(
-        title: const Text('My Event Requests'),
-        backgroundColor: Colors.red.shade900,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Sign Out',
-            onPressed: _signOut,
-          ),
-        ],
+        ),
       );
     }
+
+    return AppBar(
+      title: Text(title),
+      backgroundColor: Colors.red.shade900,
+      actions: actions,
+    );
   }
 
   @override
@@ -119,6 +130,7 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: _buildAppBar(),
       body: Center(child: _userPages.elementAt(_selectedIndex)),
       bottomNavigationBar: BottomNavigationBar(
+        // --- MODIFIED: Added Profile button ---
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
@@ -130,6 +142,11 @@ class _HomeScreenState extends State<HomeScreen> {
             activeIcon: Icon(Icons.mail),
             label: 'Messages',
           ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: 'Profile',
+          ),
         ],
         currentIndex: _selectedIndex,
         selectedItemColor: Colors.red.shade900,
@@ -140,6 +157,7 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 // --- PAGE 1: The "Event List" Screen (Shows APPROVED events) ---
+// --- NO CHANGES TO UserEventListPage ---
 class UserEventListPage extends StatelessWidget {
   const UserEventListPage({super.key});
 
@@ -195,8 +213,6 @@ class UserEventListPage extends StatelessWidget {
             final doc = eventDocs[index];
             final data = doc.data() as Map<String, dynamic>;
 
-            // --- THIS IS LINE 214 ---
-            // This now works because your model is updated
             final event = EventDetails(
               name: data['name'] ?? 'No Name',
               date: data['date'] ?? 'No Date',
@@ -218,6 +234,7 @@ class UserEventListPage extends StatelessWidget {
 }
 
 // --- Card for the User Event List (Shows approved events) ---
+// --- NO CHANGES TO UserEventCard ---
 class UserEventCard extends StatelessWidget {
   final EventDetails event;
   const UserEventCard({super.key, required this.event});
@@ -299,9 +316,6 @@ class UserEventCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
-
-                  // --- THIS IS LINE 301 ---
-                  // This now works because your model is updated
                   if (event.time != null && event.time!.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 4.0), // Add padding
@@ -320,9 +334,6 @@ class UserEventCard extends StatelessWidget {
                         ],
                       ),
                     ),
-
-                  // --- THIS IS LINE 311 ---
-                  // This now works because your model is updated
                   if (event.coordinatorName != null &&
                       event.coordinatorName!.isNotEmpty)
                     Padding(
@@ -421,6 +432,7 @@ class _UserEventRequestScreenState extends State<UserEventRequestScreen> {
     }
   }
 
+  // --- MODIFIED: This function now navigates to the new screen ---
   void _submitRequest() async {
     if (_formKey.currentState!.validate()) {
       if (_selectedEventType == null || _selectedCollegeReach == null) {
@@ -467,15 +479,7 @@ class _UserEventRequestScreenState extends State<UserEventRequestScreen> {
             .collection('pendingEvents')
             .add(eventData);
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Request submitted for approval!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-
+        // Clear form
         _formKey.currentState!.reset();
         _nameController.clear();
         _locationController.clear();
@@ -492,9 +496,17 @@ class _UserEventRequestScreenState extends State<UserEventRequestScreen> {
           _selectedEventType = null;
           _selectedCollegeReach = null;
         });
+
+        // --- NEW: Navigate to confirmation screen ---
+        if (mounted) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => const RequestSubmittedScreen(),
+            ),
+          );
+        }
       } catch (e) {
         if (mounted) {
-          // --- THIS IS THE TYPO I FIXED ---
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Failed to submit request: $e'),
@@ -503,9 +515,11 @@ class _UserEventRequestScreenState extends State<UserEventRequestScreen> {
           );
         }
       } finally {
-        setState(() {
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
       }
     }
   }
@@ -636,7 +650,7 @@ class _UserEventRequestScreenState extends State<UserEventRequestScreen> {
                   ),
                   const SizedBox(height: 20),
                   DropdownButtonFormField<String>(
-                    value: _selectedEventType,
+                    initialValue: _selectedEventType,
                     decoration: const InputDecoration(
                       labelText: 'Event Type',
                       border: OutlineInputBorder(),
@@ -659,7 +673,7 @@ class _UserEventRequestScreenState extends State<UserEventRequestScreen> {
                   ),
                   const SizedBox(height: 20),
                   DropdownButtonFormField<String>(
-                    value: _selectedCollegeReach,
+                    initialValue: _selectedCollegeReach,
                     decoration: const InputDecoration(
                       labelText: 'College Reach',
                       border: OutlineInputBorder(),
@@ -811,3 +825,205 @@ class _UserEventRequestScreenState extends State<UserEventRequestScreen> {
     );
   }
 }
+
+// --- NEW: PAGE 3: The "Profile" Screen ---
+class UserProfileScreen extends StatefulWidget {
+  const UserProfileScreen({super.key});
+
+  @override
+  State<UserProfileScreen> createState() => _UserProfileScreenState();
+}
+
+class _UserProfileScreenState extends State<UserProfileScreen> {
+  final User? _currentUser = FirebaseAuth.instance.currentUser;
+  Map<String, dynamic>? _userData;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    if (_currentUser == null) {
+      setState(() {
+        _isLoading = false;
+      });
+      return;
+    }
+
+    try {
+      // Assuming you have a 'users' collection where doc ID is the user's UID
+      // and it contains a 'username' field.
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(_currentUser!.uid)
+          .get();
+
+      if (doc.exists) {
+        _userData = doc.data();
+      }
+    } catch (e) {
+      // Handle error
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_currentUser == null) {
+      return const Center(child: Text('Not logged in.'));
+    }
+
+    // Use 'username' from Firestore, fallback to 'displayName',
+    // or just show 'User'
+    final String username =
+        _userData?['username'] ?? _currentUser?.displayName ?? 'User';
+
+    final String email = _currentUser?.email ?? 'No email found';
+
+    return Padding(
+      padding: const EdgeInsets.all(32.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const SizedBox(height: 20),
+          Icon(Icons.account_circle, size: 120, color: Colors.grey[700]),
+          const SizedBox(height: 20),
+          Text(
+            username,
+            style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(email, style: const TextStyle(fontSize: 16, color: Colors.grey)),
+          const SizedBox(height: 40),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.settings),
+            title: const Text('Settings'),
+            onTap: () {
+              // Add navigation to a settings page if you have one
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.help_outline),
+            title: const Text('Help & Support'),
+            onTap: () {
+              // Add navigation
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// --- NEW: Confirmation Screen (like your 3rd image) ---
+// --- THIS WIDGET IS NOW FIXED ---
+class RequestSubmittedScreen extends StatelessWidget {
+  const RequestSubmittedScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                // --- THIS IS THE FIX ---
+                Icons.check_circle_outline,
+                // --- END OF FIX ---
+                size: 100,
+                color: Colors.green.shade600,
+              ),
+              const SizedBox(height: 32),
+              const Text(
+                'Request Submitted!',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 24),
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                color: Colors.grey[50],
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: RichText(
+                    textAlign: TextAlign.center,
+                    text: TextSpan(
+                      style: const TextStyle(
+                        fontSize: 17,
+                        color: Colors.black87,
+                        height: 1.5,
+                      ),
+                      children: [
+                        const TextSpan(
+                          text:
+                              'Your event request has been sent to the admin.\n'
+                              'Please wait for the ',
+                        ),
+                        TextSpan(
+                          text: '**Admin Approval**',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red.shade800,
+                          ),
+                        ),
+                        const TextSpan(text: '.'),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 40),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red.shade800,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 40,
+                    vertical: 15,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                onPressed: () {
+                  // Pop back to the "My Event Requests" screen
+                  Navigator.of(context).pop();
+                },
+                child: const Text(
+                  'Back to My Requests',
+                  style: TextStyle(fontSize: 16),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// --- NEW: Confirmation Screen (like your 3rd image) ---

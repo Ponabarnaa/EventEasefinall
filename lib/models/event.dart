@@ -1,3 +1,4 @@
+//
 // lib/models/event.dart
 
 class EventDetails {
@@ -7,9 +8,6 @@ class EventDetails {
   final String type;
   final String description;
   final String imageUrl;
-
-  // --- ADD THESE NEW FIELDS ---
-  // Make them optional (nullable) by adding the '?'
   final String? coordinatorName;
   final String? coordinatorPhone;
   final String? time;
@@ -21,8 +19,6 @@ class EventDetails {
     required this.type,
     required this.description,
     required this.imageUrl,
-
-    // --- ADD THEM TO THE CONSTRUCTOR ---
     this.coordinatorName,
     this.coordinatorPhone,
     this.time,

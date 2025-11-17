@@ -235,7 +235,6 @@ class AdminEventRequestsScreen extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      // --- 1. BUG FIX: Replaced RoundedRectangleSymmetricBorder ---
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -271,7 +270,6 @@ class AdminEventRequestsScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    // --- 2. BUG FIX: Pass 'context' to the helper method ---
                     _buildDetailRow(
                       context,
                       Icons.person,
@@ -351,7 +349,6 @@ class AdminEventRequestsScreen extends StatelessWidget {
     );
   }
 
-  // --- 2. BUG FIX: Helper widget now accepts 'context' ---
   Widget _buildDetailRow(
     BuildContext context,
     IconData icon,
@@ -378,7 +375,6 @@ class AdminEventRequestsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               SizedBox(
-                // --- 2. BUG FIX: This line now has the 'context' it needs ---
                 width: MediaQuery.of(context).size.width - 100,
                 child: Text(
                   value,
@@ -402,9 +398,20 @@ class AdminEventRequestsScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Event list',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          // --- MODIFIED: Changed title to match your image style ---
+          const Row(
+            children: [
+              Text(
+                'Pending Approvals',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.orange,
+                ),
+              ),
+              SizedBox(width: 8),
+              Icon(Icons.hourglass_top, color: Colors.orange),
+            ],
           ),
           const SizedBox(height: 20),
           // --- StreamBuilder to get live data ---
@@ -433,6 +440,8 @@ class AdminEventRequestsScreen extends StatelessWidget {
                   itemBuilder: (context, index) {
                     // This 'context' is from the ListView.builder
                     final event = PendingEvent.fromFirestore(eventDocs[index]);
+
+                    // --- MODIFIED: Using the new card ---
                     return EventRequestCard(
                       event: event,
                       onApprove: () {
@@ -482,7 +491,7 @@ class AdminEventRequestsScreen extends StatelessWidget {
   }
 }
 
-// --- Card for each event request ---
+// --- MODIFIED: Card redesigned to match your 2nd image's layout ---
 class EventRequestCard extends StatelessWidget {
   final PendingEvent event;
   final VoidCallback onApprove;
@@ -508,43 +517,108 @@ class EventRequestCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              event.name,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            // --- NEW: Header section like your image ---
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 24,
+                  backgroundColor: Colors.red.shade100,
+                  child: Icon(Icons.event_note, color: Colors.red.shade800),
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      event.name, // Event name
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      event.requestedByEmail, // Requester email
+                      style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+                    ),
+                    const SizedBox(height: 2),
+                    const Chip(
+                      label: Text('Pending'),
+                      labelStyle: TextStyle(
+                        color: Colors.orange,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      backgroundColor: Color.fromARGB(255, 255, 246, 233),
+                      padding: EdgeInsets.zero,
+                      visualDensity: VisualDensity(
+                        horizontal: 0.0,
+                        vertical: -4,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Icon(
-                  Icons.location_on_outlined,
-                  size: 16,
-                  color: Colors.grey[700],
-                ),
-                const SizedBox(width: 8),
-                Text(event.location, style: const TextStyle(fontSize: 15)),
-              ],
+            const Divider(),
+            const SizedBox(height: 4),
+
+            // --- NEW: Details section ---
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Quick Details:',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.calendar_today_outlined,
+                        size: 16,
+                        color: Colors.grey[700],
+                      ),
+                      const SizedBox(width: 8),
+                      Text(event.date, style: const TextStyle(fontSize: 15)),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.location_on_outlined,
+                        size: 16,
+                        color: Colors.grey[700],
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        event.location,
+                        style: const TextStyle(fontSize: 15),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(
-                  Icons.calendar_today_outlined,
-                  size: 16,
-                  color: Colors.grey[700],
-                ),
-                const SizedBox(width: 8),
-                Text(event.date, style: const TextStyle(fontSize: 15)),
-              ],
-            ),
+
             const SizedBox(height: 16),
             const Divider(),
             const SizedBox(height: 8),
+
+            // --- NEW: Button layout section ---
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                TextButton(
+                TextButton.icon(
                   onPressed: onViewDetails,
-                  child: const Text('View Details'),
+                  icon: const Icon(Icons.info_outline),
+                  label: const Text('View Full Details'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Theme.of(context).primaryColorDark,
+                  ),
                 ),
                 Row(
                   children: [
