@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import '../models/event.dart'; // This now imports the file you just fixed
 import 'registration_form_screen.dart';
 import 'login&register.dart';
+import 'my_events_screen.dart';
 
 // --- Main User Screen (Manages Tabs) ---
 class HomeScreen extends StatefulWidget {
@@ -21,11 +22,11 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   String _currentFilter = 'All';
 
-  // --- MODIFIED: Added UserProfileScreen to the list ---
-  static const List<Widget> _userPages = <Widget>[
-    UserEventListPage(),
-    UserEventRequestScreen(),
-    UserProfileScreen(), // New profile page
+  // --- MODIFIED: Pages are now built dynamically to pass filter ---
+  List<Widget> get _userPages => <Widget>[
+    UserEventListPage(currentFilter: _currentFilter),
+    const MyEventsScreen(), // Shows user's submitted events
+    const UserProfileScreen(), // New profile page
   ];
 
   void _onItemTapped(int index) {
@@ -157,9 +158,9 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 // --- PAGE 1: The "Event List" Screen (Shows APPROVED events) ---
-// --- NO CHANGES TO UserEventListPage ---
 class UserEventListPage extends StatelessWidget {
-  const UserEventListPage({super.key});
+  final String currentFilter;
+  const UserEventListPage({super.key, required this.currentFilter});
 
   String _getImageForType(String eventType) {
     if (eventType == 'Technical') {
@@ -169,12 +170,33 @@ class UserEventListPage extends StatelessWidget {
     }
   }
 
+  // Helper function to determine event status based on date
+  String _getEventStatus(String dateStr) {
+    try {
+      // Parse the date string (assuming format like "2025-11-19")
+      final eventDate = DateTime.parse(dateStr);
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final eventDay = DateTime(eventDate.year, eventDate.month, eventDate.day);
+
+      if (eventDay.isAfter(today)) {
+        return 'Upcoming';
+      } else if (eventDay.isBefore(today)) {
+        return 'Completed';
+      } else {
+        return 'Ongoing';
+      }
+    } catch (e) {
+      return 'Upcoming'; // Default to upcoming if date parsing fails
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('pendingEvents')
-          .where('status', isEqualTo: 'approved')
+          .where('status', isEqualTo: 'published')
           .orderBy('requestedAt', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
@@ -192,7 +214,7 @@ class UserEventListPage extends StatelessWidget {
                 Icon(Icons.event_busy, size: 80, color: Colors.grey),
                 SizedBox(height: 20),
                 Text(
-                  'No approved events found.',
+                  'No events available yet.',
                   style: TextStyle(fontSize: 18, color: Colors.grey),
                 ),
                 Text(
@@ -206,11 +228,43 @@ class UserEventListPage extends StatelessWidget {
 
         final eventDocs = snapshot.data!.docs;
 
+        // Filter events based on selected filter
+        final filteredDocs = eventDocs.where((doc) {
+          if (currentFilter == 'All') return true;
+
+          final data = doc.data() as Map<String, dynamic>;
+          final dateStr = data['date'] ?? '';
+          final eventStatus = _getEventStatus(dateStr);
+
+          return eventStatus == currentFilter;
+        }).toList();
+
+        // Show empty state if no events match filter
+        if (filteredDocs.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.event_busy, size: 80, color: Colors.grey),
+                const SizedBox(height: 20),
+                Text(
+                  'No $currentFilter events found.',
+                  style: const TextStyle(fontSize: 18, color: Colors.grey),
+                ),
+                const Text(
+                  'Try a different filter!',
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                ),
+              ],
+            ),
+          );
+        }
+
         return ListView.builder(
           padding: const EdgeInsets.all(16.0),
-          itemCount: eventDocs.length,
+          itemCount: filteredDocs.length,
           itemBuilder: (context, index) {
-            final doc = eventDocs[index];
+            final doc = filteredDocs[index];
             final data = doc.data() as Map<String, dynamic>;
 
             final event = EventDetails(
@@ -650,7 +704,7 @@ class _UserEventRequestScreenState extends State<UserEventRequestScreen> {
                   ),
                   const SizedBox(height: 20),
                   DropdownButtonFormField<String>(
-                    initialValue: _selectedEventType,
+                    value: _selectedEventType,
                     decoration: const InputDecoration(
                       labelText: 'Event Type',
                       border: OutlineInputBorder(),
@@ -673,7 +727,7 @@ class _UserEventRequestScreenState extends State<UserEventRequestScreen> {
                   ),
                   const SizedBox(height: 20),
                   DropdownButtonFormField<String>(
-                    initialValue: _selectedCollegeReach,
+                    value: _selectedCollegeReach,
                     decoration: const InputDecoration(
                       labelText: 'College Reach',
                       border: OutlineInputBorder(),
@@ -858,7 +912,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       // and it contains a 'username' field.
       final doc = await FirebaseFirestore.instance
           .collection('users')
-          .doc(_currentUser!.uid)
+          .doc(_currentUser.uid)
           .get();
 
       if (doc.exists) {
@@ -888,9 +942,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     // Use 'username' from Firestore, fallback to 'displayName',
     // or just show 'User'
     final String username =
-        _userData?['username'] ?? _currentUser?.displayName ?? 'User';
+        _userData?['username'] ?? _currentUser.displayName ?? 'User';
 
-    final String email = _currentUser?.email ?? 'No email found';
+    final String email = _currentUser.email ?? 'No email found';
 
     return Padding(
       padding: const EdgeInsets.all(32.0),

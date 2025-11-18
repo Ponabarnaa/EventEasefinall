@@ -189,7 +189,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                         children: [
                           // --- Role Dropdown (NEW) ---
                           DropdownButtonFormField<String>(
-                            initialValue: _selectedRole,
+                            value: _selectedRole,
                             decoration: const InputDecoration(
                               labelText: 'Select Role',
                               prefixIcon: Icon(Icons.security),

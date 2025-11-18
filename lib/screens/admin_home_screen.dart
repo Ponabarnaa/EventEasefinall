@@ -153,10 +153,20 @@ class AdminEventRequestsScreen extends StatelessWidget {
 
   // --- Handle Approval/Denial ---
   void _handleEventStatus(String docId, String newStatus, {String? reason}) {
-    Map<String, dynamic> dataToUpdate = {'status': newStatus};
+    Map<String, dynamic> dataToUpdate = {
+      'status': newStatus,
+      'statusUpdatedAt': FieldValue.serverTimestamp(),
+    };
+
+    if (newStatus == 'approved') {
+      // When approving, mark that Form 2 needs to be submitted
+      dataToUpdate['form2Submitted'] = false;
+    }
+
     if (newStatus == 'declined' && reason != null) {
       dataToUpdate['rejectionReason'] = reason;
     }
+
     FirebaseFirestore.instance
         .collection('pendingEvents')
         .doc(docId)
@@ -393,12 +403,41 @@ class AdminEventRequestsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 2,
+      child: Column(
+        children: [
+          const TabBar(
+            labelColor: Colors.red,
+            unselectedLabelColor: Colors.grey,
+            indicatorColor: Colors.red,
+            tabs: [
+              Tab(text: 'Pending Approvals'),
+              Tab(text: 'Form 2 Verifications'),
+            ],
+          ),
+          Expanded(
+            child: TabBarView(
+              children: [
+                // Tab 1: Pending Approvals (Form 1)
+                _buildPendingApprovalsTab(context),
+                // Tab 2: Form 2 Submissions
+                _buildForm2VerificationsTab(context),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Tab 1: Pending Form 1 Approvals
+  Widget _buildPendingApprovalsTab(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // --- MODIFIED: Changed title to match your image style ---
           const Row(
             children: [
               Text(
@@ -414,7 +453,6 @@ class AdminEventRequestsScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
-          // --- StreamBuilder to get live data ---
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -423,7 +461,6 @@ class AdminEventRequestsScreen extends StatelessWidget {
                   .orderBy('requestedAt', descending: true)
                   .snapshots(),
               builder: (context, snapshot) {
-                // This 'context' is from the StreamBuilder
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
@@ -438,27 +475,30 @@ class AdminEventRequestsScreen extends StatelessWidget {
                 return ListView.builder(
                   itemCount: eventDocs.length,
                   itemBuilder: (context, index) {
-                    // This 'context' is from the ListView.builder
-                    final event = PendingEvent.fromFirestore(eventDocs[index]);
+                    final doc = eventDocs[index];
+                    final event = PendingEvent.fromFirestore(doc);
+                    final status =
+                        (doc.data() as Map<String, dynamic>)['status'] ??
+                        'pending';
 
-                    // --- MODIFIED: Using the new card ---
                     return EventRequestCard(
                       event: event,
+                      status: status,
                       onApprove: () {
                         _handleEventStatus(event.id, 'approved');
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Event Approved!'),
+                            content: Text(
+                              'Event Approved! User can now submit details.',
+                            ),
                             backgroundColor: Colors.green,
                           ),
                         );
                       },
                       onDecline: () {
-                        // Pass the correct context
                         _showDeclineDialog(context, event);
                       },
                       onViewDetails: () {
-                        // Pass the correct context
                         _showEventDetails(context, event);
                       },
                     );
@@ -469,6 +509,181 @@ class AdminEventRequestsScreen extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  // Tab 2: Form 2 Verifications (events with status = 'form2_submitted')
+  Widget _buildForm2VerificationsTab(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Text(
+                'Form 2 Submissions',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue,
+                ),
+              ),
+              SizedBox(width: 8),
+              Icon(Icons.upload_file, color: Colors.blue),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('pendingEvents')
+                  .where('status', isEqualTo: 'form2_submitted')
+                  .orderBy('form2SubmittedAt', descending: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.inbox, size: 150, color: Colors.grey),
+                        SizedBox(height: 20),
+                        Text(
+                          'No Form 2 submissions pending verification.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 18, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                final eventDocs = snapshot.data!.docs;
+                return ListView.builder(
+                  itemCount: eventDocs.length,
+                  itemBuilder: (context, index) {
+                    final doc = eventDocs[index];
+                    final eventData = doc.data() as Map<String, dynamic>;
+
+                    return Form2VerificationCard(
+                      eventId: doc.id,
+                      eventData: eventData,
+                      onPublish: () {
+                        FirebaseFirestore.instance
+                            .collection('pendingEvents')
+                            .doc(doc.id)
+                            .update({
+                              'status': 'published',
+                              'publishedAt': FieldValue.serverTimestamp(),
+                            });
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Event Published! Now visible to all users.',
+                            ),
+                            backgroundColor: Colors.purple,
+                          ),
+                        );
+                      },
+                      onReject: () {
+                        _showForm2RejectDialog(
+                          context,
+                          doc.id,
+                          eventData['name'] ?? 'Event',
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Dialog to reject Form 2
+  void _showForm2RejectDialog(
+    BuildContext context,
+    String docId,
+    String eventName,
+  ) {
+    final TextEditingController reasonController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Reject Form 2 for "$eventName"'),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Please provide a reason for rejecting these details.',
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: reasonController,
+                  decoration: const InputDecoration(
+                    labelText: 'Reason',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'A reason is required.';
+                    }
+                    return null;
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.shade700,
+              ),
+              onPressed: () {
+                if (formKey.currentState!.validate()) {
+                  FirebaseFirestore.instance
+                      .collection('pendingEvents')
+                      .doc(docId)
+                      .update({
+                        'status':
+                            'approved', // Back to approved so user can resubmit Form 2
+                        'form2Submitted': false,
+                        'form2RejectionReason': reasonController.text,
+                      });
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Form 2 Rejected. User can resubmit.'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Reject'),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -494,6 +709,7 @@ class AdminEventRequestsScreen extends StatelessWidget {
 // --- MODIFIED: Card redesigned to match your 2nd image's layout ---
 class EventRequestCard extends StatelessWidget {
   final PendingEvent event;
+  final String status;
   final VoidCallback onApprove;
   final VoidCallback onDecline;
   final VoidCallback onViewDetails;
@@ -501,6 +717,7 @@ class EventRequestCard extends StatelessWidget {
   const EventRequestCard({
     super.key,
     required this.event,
+    required this.status,
     required this.onApprove,
     required this.onDecline,
     required this.onViewDetails,
@@ -542,15 +759,29 @@ class EventRequestCard extends StatelessWidget {
                       style: TextStyle(fontSize: 13, color: Colors.grey[700]),
                     ),
                     const SizedBox(height: 2),
-                    const Chip(
-                      label: Text('Pending'),
+                    Chip(
+                      label: Text(
+                        status == 'approved'
+                            ? 'Approved'
+                            : status == 'declined'
+                            ? 'Declined'
+                            : 'Pending',
+                      ),
                       labelStyle: TextStyle(
-                        color: Colors.orange,
+                        color: status == 'approved'
+                            ? Colors.green
+                            : (status == 'declined'
+                                  ? Colors.red
+                                  : Colors.orange),
                         fontWeight: FontWeight.bold,
                       ),
-                      backgroundColor: Color.fromARGB(255, 255, 246, 233),
+                      backgroundColor: status == 'approved'
+                          ? Colors.green.shade50
+                          : (status == 'declined'
+                                ? Colors.red.shade50
+                                : Colors.orange.shade50),
                       padding: EdgeInsets.zero,
-                      visualDensity: VisualDensity(
+                      visualDensity: const VisualDensity(
                         horizontal: 0.0,
                         vertical: -4,
                       ),
@@ -608,7 +839,7 @@ class EventRequestCard extends StatelessWidget {
             const Divider(),
             const SizedBox(height: 8),
 
-            // --- NEW: Button layout section ---
+            // --- MODIFIED: Show action buttons only for pending events ---
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -620,26 +851,39 @@ class EventRequestCard extends StatelessWidget {
                     foregroundColor: Theme.of(context).primaryColorDark,
                   ),
                 ),
-                Row(
-                  children: [
-                    TextButton(
-                      onPressed: onDecline,
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.red.shade700,
+                // Only show approve/decline buttons if status is pending
+                if (status == 'pending')
+                  Row(
+                    children: [
+                      TextButton(
+                        onPressed: onDecline,
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.red.shade700,
+                        ),
+                        child: const Text('Decline'),
                       ),
-                      child: const Text('Decline'),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: onApprove,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green.shade600,
-                        foregroundColor: Colors.white,
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: onApprove,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green.shade600,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('Approve'),
                       ),
-                      child: const Text('Approve'),
+                    ],
+                  ),
+                // Show status message for already processed events
+                if (status != 'pending')
+                  Chip(
+                    label: Text(
+                      status == 'approved' ? 'Already Approved' : 'Declined',
+                      style: const TextStyle(fontSize: 12),
                     ),
-                  ],
-                ),
+                    backgroundColor: status == 'approved'
+                        ? Colors.green.shade100
+                        : Colors.red.shade100,
+                  ),
               ],
             ),
           ],
@@ -669,6 +913,162 @@ class AdminDashboardPage extends StatelessWidget {
           Text('This is the dedicated Admin Area.'),
         ],
       ),
+    );
+  }
+}
+
+// --- Form 2 Verification Card ---
+class Form2VerificationCard extends StatelessWidget {
+  final String eventId;
+  final Map<String, dynamic> eventData;
+  final VoidCallback onPublish;
+  final VoidCallback onReject;
+
+  const Form2VerificationCard({
+    super.key,
+    required this.eventId,
+    required this.eventData,
+    required this.onPublish,
+    required this.onReject,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 3,
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Event Name
+            Row(
+              children: [
+                const Icon(Icons.event, color: Colors.blue, size: 32),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    eventData['name'] ?? 'Unnamed Event',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 24),
+
+            // Basic Info
+            _buildInfoRow(
+              Icons.email,
+              'Submitted by:',
+              eventData['requestedByEmail'] ?? 'N/A',
+            ),
+            const SizedBox(height: 8),
+            _buildInfoRow(
+              Icons.category,
+              'Type:',
+              eventData['eventType'] ?? 'N/A',
+            ),
+            const SizedBox(height: 8),
+            _buildInfoRow(
+              Icons.location_on,
+              'Location:',
+              eventData['location'] ?? 'N/A',
+            ),
+
+            const Divider(height: 24),
+
+            // Form 2 Details
+            const Text(
+              'Form 2 Details:',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.blue,
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            _buildInfoRow(
+              Icons.link,
+              'Registration Link:',
+              eventData['registrationLink'] ?? 'N/A',
+            ),
+            const SizedBox(height: 8),
+            _buildInfoRow(
+              Icons.calendar_today,
+              'Event Date:',
+              eventData['finalEventDate'] ?? 'N/A',
+            ),
+            const SizedBox(height: 8),
+            _buildInfoRow(
+              Icons.image,
+              'Poster:',
+              eventData['posterUrl'] != null ? 'Uploaded ✓' : 'Not uploaded',
+            ),
+            const SizedBox(height: 8),
+            _buildInfoRow(
+              Icons.video_library,
+              'Promo Video:',
+              eventData['promoVideoLink'] ?? 'N/A',
+            ),
+
+            const SizedBox(height: 16),
+
+            // Action Buttons
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: onReject,
+                  child: const Text(
+                    'Reject',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton.icon(
+                  onPressed: onPublish,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.purple.shade600,
+                    foregroundColor: Colors.white,
+                  ),
+                  icon: const Icon(Icons.public),
+                  label: const Text('Publish Event'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 16, color: Colors.grey[600]),
+        const SizedBox(width: 8),
+        Expanded(
+          child: RichText(
+            text: TextSpan(
+              style: const TextStyle(color: Colors.black87),
+              children: [
+                TextSpan(
+                  text: '$label ',
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                ),
+                TextSpan(text: value),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
