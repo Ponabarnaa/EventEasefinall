@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:lottie/lottie.dart';
 
 import 'home_screen.dart';
-import 'admin_home_screen.dart'; // <-- NEW: Import for Admin Home Screen
+import 'admin_layout_screen.dart'; // <-- NEW: Import for Admin Home Screen
 
 class LoginRegisterScreen extends StatefulWidget {
   const LoginRegisterScreen({super.key});
@@ -83,7 +83,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
         // NOTE: In a production app, you would verify the role from a database
         // after login, not just rely on the user's selected role on the login screen.
         if (_selectedRole == 'Admin') {
-          nextScreen = const AdminHomeScreen();
+          nextScreen = const AdminLayoutScreen();
         } else {
           nextScreen = const HomeScreen();
         }
