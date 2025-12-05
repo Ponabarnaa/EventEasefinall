@@ -1,10 +1,13 @@
 // lib/screens/create_event_screen.dart
 
-import 'dart:io';
+import 'dart:io' show File;
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 
 class CreateEventScreen extends StatefulWidget {
   const CreateEventScreen({super.key});
@@ -16,242 +19,186 @@ class CreateEventScreen extends StatefulWidget {
 class _CreateEventScreenState extends State<CreateEventScreen> {
   final _formKey = GlobalKey<FormState>();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
 
-  // Text Controllers
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _venueController = TextEditingController();
   final TextEditingController _timeController = TextEditingController();
   final TextEditingController _deptController = TextEditingController();
 
-  File? _pickedImage;
+  File? _pickedImageFile; // Mobile/Desktop
+  Uint8List? _pickedImageBytes; // Web
   bool _isLoading = false;
 
-  // --- Image Picking Function ---
+  // ---------------- PICK IMAGE ----------------
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
-    final XFile? pickedFile = await picker.pickImage(
-      source: ImageSource.gallery,
-    );
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
 
-    if (pickedFile != null) {
-      setState(() {
-        _pickedImage = File(pickedFile.path);
-      });
+    if (image == null) return;
+
+    if (kIsWeb) {
+      // Web: use bytes
+      final bytes = await image.readAsBytes();
+      setState(() => _pickedImageBytes = bytes);
+    } else {
+      // Mobile/Desktop: use File
+      setState(() => _pickedImageFile = File(image.path));
     }
   }
 
-  // --- Submission Function (Upload Image and Data to Firebase) ---
-  Future<void> _submitEvent() async {
-    if (!_formKey.currentState!.validate() || _pickedImage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fill all fields and select a poster.'),
+  // ---------------- CLOUDINARY UPLOAD ----------------
+  Future<String?> uploadToCloudinary() async {
+    const cloudName = "dtbjwyq2p";
+    const uploadPreset = "event_poster";
+
+    final url = Uri.parse(
+      "https://api.cloudinary.com/v1_1/$cloudName/image/upload",
+    );
+    var request = http.MultipartRequest("POST", url);
+
+    request.fields["upload_preset"] = uploadPreset;
+
+    if (kIsWeb) {
+      // ------- WEB UPLOAD (BYTE ARRAY) -------
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          "file",
+          _pickedImageBytes!,
+          filename: "poster.png",
         ),
       );
+    } else {
+      // ------- MOBILE UPLOAD (FILE PATH) -------
+      request.files.add(
+        await http.MultipartFile.fromPath("file", _pickedImageFile!.path),
+      );
+    }
+
+    final response = await request.send();
+    final result = await http.Response.fromStream(response);
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(result.body);
+      return data["secure_url"];
+    } else {
+      print("Cloudinary Error: ${result.body}");
+      return null;
+    }
+  }
+
+  // ---------------- SUBMIT EVENT ----------------
+  Future<void> _submitEvent() async {
+    if (!_formKey.currentState!.validate()) {
+      _showMessage("Please fill all fields");
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    if (_pickedImageFile == null && _pickedImageBytes == null) {
+      _showMessage("Please select event poster");
+      return;
+    }
+
+    setState(() => _isLoading = true);
 
     try {
-      // 1. Upload Image to Firebase Storage
-      final ref = _storage
-          .ref()
-          .child('event_posters')
-          .child('${DateTime.now().toIso8601String()}.jpg');
+      String? imageUrl = await uploadToCloudinary();
 
-      await ref.putFile(_pickedImage!);
-      final imageUrl = await ref.getDownloadURL();
+      if (imageUrl == null) {
+        _showMessage("Image upload failed!");
+        return;
+      }
 
-      // 2. Save Event Details (including image URL) to Firestore
-      await _firestore.collection('events').add({
-        'name': _nameController.text.trim(),
-        'venue': _venueController.text.trim(),
-        'time': _timeController.text.trim(),
-        'department': _deptController.text.trim(),
-        'posterUrl': imageUrl,
-        'status': 'Upcoming', // Default status for new events
-        'createdAt': Timestamp.now(),
+      await _firestore.collection("events").add({
+        "name": _nameController.text.trim(),
+        "venue": _venueController.text.trim(),
+        "time": _timeController.text.trim(),
+        "department": _deptController.text.trim(),
+        "posterUrl": imageUrl,
+        "status": "Upcoming",
+        "createdAt": Timestamp.now(),
       });
 
-      // Show success message and navigate back
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Event posted successfully!')),
-      );
+      _showMessage("Event posted successfully");
       Navigator.of(context).pop();
     } catch (e) {
-      print('Error posting event: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('An error occurred during posting.')),
-      );
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      print(e);
     }
+
+    setState(() => _isLoading = false);
+  }
+
+  void _showMessage(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Admin Dashboard'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {},
-          ),
-          IconButton(icon: const Icon(Icons.person_outline), onPressed: () {}),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Create Event')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(20),
         child: Form(
           key: _formKey,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Title: Event Details
-              const Center(
-                child: Text(
-                  'Event Details',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // --- Form Fields ---
-              _buildInputField('Event Name:', _nameController),
-              _buildInputField('Venue:', _venueController),
-              _buildInputField('Time:', _timeController),
-              _buildInputField('Department:', _deptController),
-
+              _buildField("Event Name", _nameController),
+              _buildField("Venue", _venueController),
+              _buildField("Time", _timeController),
+              _buildField("Department", _deptController),
               const SizedBox(height: 20),
 
-              // --- Image Picker Area ---
+              // ----------- IMAGE PICKER BOX -----------
               GestureDetector(
                 onTap: _pickImage,
                 child: Container(
                   height: 200,
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: Colors.grey),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: _pickedImage != null
-                      ? Image.file(_pickedImage!, fit: BoxFit.cover)
-                      : const Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.image, size: 50, color: Colors.grey), //
-                            Text('Tap to select event poster'),
-                          ],
-                        ),
+                  child: _buildImagePreview(),
                 ),
               ),
-              const SizedBox(height: 40),
 
-              // --- Action Buttons ---
-              if (_isLoading)
-                const Center(child: CircularProgressIndicator())
-              else
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    // Post Button
-                    _buildActionButton(
-                      'Post',
-                      Icons.star,
-                      Theme.of(context).primaryColor,
-                      _submitEvent,
-                    ),
+              const SizedBox(height: 20),
 
-                    // Cancel Button
-                    _buildActionButton(
-                      'Cancel',
-                      Icons.star,
-                      Colors.grey,
-                      () => Navigator.of(context).pop(),
+              _isLoading
+                  ? const CircularProgressIndicator()
+                  : ElevatedButton(
+                      onPressed: _submitEvent,
+                      child: const Text("Post Event"),
                     ),
-                  ],
-                ),
             ],
           ),
         ),
       ),
-
-      // Bottom Navigation Bar (Matching Admin Home)
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 1, // Stays on Home/Create for this page
-        showSelectedLabels: false,
-        showUnselectedLabels: false,
-        selectedItemColor: Theme.of(context).primaryColor,
-        unselectedItemColor: Colors.grey,
-        iconSize: 30,
-        onTap: (index) {
-          // You might implement different actions here, e.g., popping to a specific screen
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.chat_bubble_outline),
-            label: 'Chat',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.help_outline),
-            label: 'Help',
-          ), //
-        ],
-      ),
     );
   }
 
-  // Helper Widget for consistent input field styling
-  Widget _buildInputField(String label, TextEditingController controller) {
+  // ---------- IMAGE PREVIEW UI ----------
+  Widget _buildImagePreview() {
+    if (kIsWeb && _pickedImageBytes != null) {
+      return Image.memory(_pickedImageBytes!, fit: BoxFit.cover);
+    }
+
+    if (!kIsWeb && _pickedImageFile != null) {
+      return Image.file(_pickedImageFile!, fit: BoxFit.cover);
+    }
+
+    return const Center(child: Text("Tap to select poster"));
+  }
+
+  Widget _buildField(String label, TextEditingController controller) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
+      padding: const EdgeInsets.only(bottom: 12),
       child: TextFormField(
         controller: controller,
         decoration: InputDecoration(
-          labelText: label, // Displays labels: Event Name, Venue, etc.
-          border: const OutlineInputBorder(),
+          labelText: label,
+          border: OutlineInputBorder(),
         ),
-        validator: (value) {
-          if (value == null || value.isEmpty) {
-            return 'This field is required.';
-          }
-          return null;
-        },
-      ),
-    );
-  }
-
-  // Helper Widget for consistent button styling
-  Widget _buildActionButton(
-    String text,
-    IconData icon,
-    Color color,
-    VoidCallback onPressed,
-  ) {
-    return ElevatedButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon, color: Colors.white),
-      label: Text(
-        text,
-        style: const TextStyle(fontSize: 16, color: Colors.white),
-      ),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        elevation: 3,
+        validator: (value) => value!.isEmpty ? "Required" : null,
       ),
     );
   }
