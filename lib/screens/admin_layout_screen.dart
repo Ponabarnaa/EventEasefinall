@@ -2,10 +2,13 @@
 
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'login&register.dart'; // To navigate back after logout
-import 'admin_events_screen.dart'; // NEW: Screen for Events List
-import 'admin_post_screen.dart'; // NEW: Screen for Post Button
-import 'admin_help_screen.dart'; // NEW: Placeholder for Help/Profile
+import 'login&register.dart';
+import 'admin_events_screen.dart';
+import 'admin_post_screen.dart';
+import 'admin_help_screen.dart';
+// NEW Imports for AppBar navigation
+import 'admin_notifications_screen.dart';
+import 'admin_profile_screen.dart';
 
 class AdminLayoutScreen extends StatefulWidget {
   const AdminLayoutScreen({super.key});
@@ -23,7 +26,7 @@ class _AdminLayoutScreenState extends State<AdminLayoutScreen> {
     const AdminHelpScreen(), // 2: Help Icon (Placeholder)
   ];
 
-  // --- Logout Function ---
+  // --- Logout Function (Kept as-is) ---
   void _logout() async {
     try {
       await FirebaseAuth.instance.signOut();
@@ -33,10 +36,24 @@ class _AdminLayoutScreenState extends State<AdminLayoutScreen> {
         );
       }
     } catch (e) {
+      // NOTE: Using a simple placeholder for error message due to lack of real `Text` context
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Error signing out: $e')));
+      ).showSnackBar(const SnackBar(content: Text('Error signing out')));
     }
+  }
+
+  // --- Navigation Handlers ---
+  void _navigateToNotifications() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const AdminNotificationsScreen()),
+    );
+  }
+
+  void _navigateToProfile() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (context) => const AdminProfileScreen()));
   }
 
   @override
@@ -45,19 +62,19 @@ class _AdminLayoutScreenState extends State<AdminLayoutScreen> {
       appBar: AppBar(
         title: const Text('Admin Dashboard'),
         actions: [
-          // Notification Icon
+          // Notification Icon - NOW NAVIGATES
           IconButton(
             icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {},
+            onPressed: _navigateToNotifications,
           ),
           // Logout button only visible on the Home/Events tab (index 1)
           if (_selectedIndex == 1)
-            IconButton(
-              icon: const Icon(Icons.logout),
-              onPressed: _logout, // Call the logout function
-            ),
-          // Profile Icon
-          IconButton(icon: const Icon(Icons.person_outline), onPressed: () {}),
+            IconButton(icon: const Icon(Icons.logout), onPressed: _logout),
+          // Profile Icon - NOW NAVIGATES
+          IconButton(
+            icon: const Icon(Icons.person_outline),
+            onPressed: _navigateToProfile,
+          ),
           const SizedBox(width: 8),
         ],
       ),
@@ -65,7 +82,7 @@ class _AdminLayoutScreenState extends State<AdminLayoutScreen> {
       // Display the selected screen based on the bottom navigation index
       body: _widgetOptions.elementAt(_selectedIndex),
 
-      // Bottom Navigation Bar (Used to switch between the 3 screens)
+      // Bottom Navigation Bar (Kept as-is)
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         showSelectedLabels: false,
@@ -79,17 +96,14 @@ class _AdminLayoutScreenState extends State<AdminLayoutScreen> {
           });
         },
         items: const [
-          // 0: Message Icon (Post Button Screen)
           BottomNavigationBarItem(
             icon: Icon(Icons.chat_bubble_outline),
             label: 'Post',
           ),
-          // 1: Home Icon (Events List Screen)
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
             label: 'Home',
           ),
-          // 2: Help Icon (Placeholder Screen)
           BottomNavigationBarItem(
             icon: Icon(Icons.help_outline),
             label: 'Help',

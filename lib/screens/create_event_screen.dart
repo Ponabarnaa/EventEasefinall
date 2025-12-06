@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
+import 'package:intl/intl.dart'; // Import for date/time formatting
 
 class CreateEventScreen extends StatefulWidget {
   const CreateEventScreen({super.key});
@@ -20,14 +21,47 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   final _formKey = GlobalKey<FormState>();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  // Controllers
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _venueController = TextEditingController();
-  final TextEditingController _timeController = TextEditingController();
   final TextEditingController _deptController = TextEditingController();
+
+  // New State Variables for Date, Time, and Year
+  DateTime? _selectedDate;
+  TimeOfDay? _selectedTime;
+  String? _selectedYear; // 1st, 2nd, 3rd, 4th
 
   File? _pickedImageFile; // Mobile/Desktop
   Uint8List? _pickedImageBytes; // Web
   bool _isLoading = false;
+
+  // --- Date Picker Function ---
+  Future<void> _pickDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2030),
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+      });
+    }
+  }
+
+  // --- Time Picker Function ---
+  Future<void> _pickTime() async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+    if (picked != null && picked != _selectedTime) {
+      setState(() {
+        _selectedTime = picked;
+      });
+    }
+  }
 
   // ---------------- PICK IMAGE ----------------
   Future<void> _pickImage() async {
@@ -98,6 +132,14 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       return;
     }
 
+    // Additional validation for date/time/year
+    if (_selectedDate == null ||
+        _selectedTime == null ||
+        _selectedYear == null) {
+      _showMessage("Please select Date, Time, and Year.");
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
@@ -108,11 +150,18 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         return;
       }
 
+      // Combine Date and Time into a single formatted string for storage
+      final DateFormat dateFormatter = DateFormat('EEE, MMM d, yyyy');
+      final String formattedDate = dateFormatter.format(_selectedDate!);
+      final String formattedTime = _selectedTime!.format(context);
+      final String dateTimeString = '$formattedDate at $formattedTime';
+
       await _firestore.collection("events").add({
         "name": _nameController.text.trim(),
         "venue": _venueController.text.trim(),
-        "time": _timeController.text.trim(),
+        "dateTime": dateTimeString, // Use the combined date/time string
         "department": _deptController.text.trim(),
+        "year": _selectedYear, // Include the selected year
         "posterUrl": imageUrl,
         "status": "Upcoming",
         "createdAt": Timestamp.now(),
@@ -140,11 +189,61 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         child: Form(
           key: _formKey,
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Event Name
               _buildField("Event Name", _nameController),
+              // Venue
               _buildField("Venue", _venueController),
-              _buildField("Time", _timeController),
+
+              // Date Picker
+              _buildDateTimePicker(
+                label: 'Date',
+                icon: Icons.calendar_today,
+                valueText: _selectedDate == null
+                    ? 'Select Date'
+                    : DateFormat('dd MMM yyyy').format(_selectedDate!),
+                onTap: _pickDate,
+              ),
+
+              // Time Picker
+              _buildDateTimePicker(
+                label: 'Time',
+                icon: Icons.access_time,
+                valueText: _selectedTime == null
+                    ? 'Select Time'
+                    : _selectedTime!.format(context),
+                onTap: _pickTime,
+              ),
+
+              // Department
               _buildField("Department", _deptController),
+
+              const SizedBox(height: 8),
+
+              // Year Dropdown (NEW)
+              DropdownButtonFormField<String>(
+                decoration: const InputDecoration(
+                  labelText: 'Target Year',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.school),
+                ),
+                value: _selectedYear,
+                hint: const Text('Select Year of Study (e.g., 1st, 2nd)'),
+                items: ['1st Year', '2nd Year', '3rd Year', '4th Year']
+                    .map(
+                      (year) =>
+                          DropdownMenuItem(value: year, child: Text(year)),
+                    )
+                    .toList(),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _selectedYear = newValue;
+                  });
+                },
+                validator: (value) => value == null ? "Required" : null,
+              ),
+
               const SizedBox(height: 20),
 
               // ----------- IMAGE PICKER BOX -----------
@@ -161,16 +260,110 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 ),
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 30),
 
+              // ----------- BUTTONS ROW (UPDATED STYLING) -----------
               _isLoading
-                  ? const CircularProgressIndicator()
-                  : ElevatedButton(
-                      onPressed: _submitEvent,
-                      child: const Text("Post Event"),
+                  ? const Center(child: CircularProgressIndicator())
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        // Cancel Button
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () {
+                              Navigator.of(context).pop(); // Go back
+                            },
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 15),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            child: const Text(
+                              "Cancel",
+                              style: TextStyle(fontSize: 18),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 15),
+
+                        // Post Event Button (MODIFIED FOR STAR ICON AND ROUNDED STYLE)
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: _submitEvent,
+                            icon: const Icon(
+                              // Added Icon
+                              Icons.star,
+                              color: Colors
+                                  .white, // Ensure icon color contrasts with button color
+                            ),
+                            label: const Text(
+                              // Updated to use label for text
+                              "Post", // Text changed to "Post"
+                              style: TextStyle(fontSize: 18),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              // Customize color if needed, otherwise it uses the theme's primary color
+                              // backgroundColor: const Color(0xFF5C6BC0), // Example: Indigo color
+                              foregroundColor:
+                                  Colors.white, // Text and icon color
+                              padding: const EdgeInsets.symmetric(vertical: 15),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                  50,
+                                ), // Increased radius for pill shape
+                              ),
+                              elevation: 5, // Added elevation for shadow
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  // ---------- Helper for TextFormFields ----------
+  Widget _buildField(String label, TextEditingController controller) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextFormField(
+        controller: controller,
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+        ),
+        validator: (value) => value!.isEmpty ? "Required" : null,
+      ),
+    );
+  }
+
+  // ---------- Helper for Date/Time Pickers ----------
+  Widget _buildDateTimePicker({
+    required String label,
+    required IconData icon,
+    required String valueText,
+    required VoidCallback onTap,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        onTap: onTap,
+        child: InputDecorator(
+          decoration: InputDecoration(
+            labelText: label,
+            border: const OutlineInputBorder(),
+            prefixIcon: Icon(icon),
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 15,
+              horizontal: 10,
+            ),
+          ),
+          child: Text(valueText, style: const TextStyle(fontSize: 16)),
         ),
       ),
     );
@@ -187,19 +380,5 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     }
 
     return const Center(child: Text("Tap to select poster"));
-  }
-
-  Widget _buildField(String label, TextEditingController controller) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: TextFormField(
-        controller: controller,
-        decoration: InputDecoration(
-          labelText: label,
-          border: OutlineInputBorder(),
-        ),
-        validator: (value) => value!.isEmpty ? "Required" : null,
-      ),
-    );
   }
 }

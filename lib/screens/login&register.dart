@@ -22,6 +22,9 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
   // NEW: State variable for role selection
   String _selectedRole = 'User'; // Default role
 
+  // ADDED: State variable for password visibility
+  bool _isObscure = true;
+
   // Text controllers
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -262,16 +265,33 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                           ),
                           const SizedBox(height: 16),
 
-                          // --- Password Field ---
+                          // --- Password Field (UPDATED for Visibility Toggle) ---
                           TextFormField(
                             key: const ValueKey('password'),
                             controller: _passwordController,
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
+                              // Use InputDecoration here
                               labelText: 'Password',
-                              prefixIcon: Icon(Icons.lock_outline),
-                              border: OutlineInputBorder(),
+                              prefixIcon: const Icon(Icons.lock_outline),
+                              border: const OutlineInputBorder(),
+                              // ADDED: The Eye Icon Button
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  // Change icon based on state
+                                  _isObscure
+                                      ? Icons.visibility
+                                      : Icons.visibility_off,
+                                ),
+                                onPressed: () {
+                                  // Toggle the state
+                                  setState(() {
+                                    _isObscure = !_isObscure;
+                                  });
+                                },
+                              ),
                             ),
-                            obscureText: true,
+                            obscureText:
+                                _isObscure, // Use the state variable here
                             validator: (value) {
                               if (value == null || value.trim().length < 7) {
                                 return 'Password must be at least 7 characters long.';

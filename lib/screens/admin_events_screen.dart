@@ -1,6 +1,41 @@
-// lib/screens/admin_events_screen.dart
+// lib/screens/admin_events_screen.dart (UPDATED)
 
 import 'package:flutter/material.dart';
+import 'admin_event_detail_screen.dart'; // Import the new detail screen
+
+// Mock Event data for demonstration
+const List<Event> _mockEvents = [
+  Event(
+    id: 'e1',
+    title: 'Community Clean-up Drive',
+    date: 'December 15, 2025',
+    time: '9:00 AM - 12:00 PM',
+    location: 'Central Park Entrance',
+    description:
+        'Join us for our annual community clean-up drive. Supplies will be provided. Please wear comfortable clothes and shoes.',
+  ),
+  Event(
+    id: 'e2',
+    title: 'Year-End Gala Dinner',
+    date: 'December 31, 2025',
+    time: '7:00 PM onwards',
+    location: 'Grand Ballroom, City Hall',
+    description:
+        'A formal event to celebrate the achievements of the year. RSVP required by Dec 20th. Dress code: Black Tie.',
+  ),
+  Event(
+    id: 'e3',
+    title: 'Upcoming Events Tab Test',
+    date: 'January 10, 2026',
+    time: '4:00 PM - 5:00 PM',
+    location: 'Online Webinar',
+    description:
+        'This is a test event for the upcoming events tab. Check the details and navigation.',
+  ),
+];
+
+// Helper to filter events based on the tab
+enum EventFilter { upcoming, ongoings, completed }
 
 class AdminEventsScreen extends StatefulWidget {
   const AdminEventsScreen({super.key});
@@ -9,146 +44,184 @@ class AdminEventsScreen extends StatefulWidget {
   State<AdminEventsScreen> createState() => _AdminEventsScreenState();
 }
 
-class _AdminEventsScreenState extends State<AdminEventsScreen> {
-  // State for the Dropdown Filter
-  String _selectedFilter = 'Upcoming'; // Default view
-  final List<String> _filterOptions = ['Upcoming', 'Ongoing', 'Completed'];
+class _AdminEventsScreenState extends State<AdminEventsScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  EventFilter _currentFilter = EventFilter.upcoming;
 
-  // Dummy Data (Set to EMPTY to display the "No Events" message)
-  // This ensures the page starts empty, as requested.
-  final List<Map<String, String>> _allEvents = [];
-  // Example of how data would look if present:
-  // final List<Map<String, String>> _allEvents = [
-  //   {'title': 'Annual Gala Dinner', 'status': 'Upcoming', 'date': 'Jan 15'},
-  //   {'title': 'Department Workshop', 'status': 'Ongoing', 'date': 'Today'},
-  //   {'title': 'Freshers Orientation', 'status': 'Completed', 'date': 'Aug 20'},
-  // ];
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(_handleTabSelection);
+  }
+
+  void _handleTabSelection() {
+    if (_tabController.indexIsChanging) {
+      setState(() {
+        switch (_tabController.index) {
+          case 0:
+            _currentFilter = EventFilter.upcoming;
+            break;
+          case 1:
+            _currentFilter = EventFilter.ongoings;
+            break;
+          case 2:
+            _currentFilter = EventFilter.completed;
+            break;
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _tabController.removeListener(_handleTabSelection);
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  // NOTE: In a real app, this function would filter events based on their actual date/status
+  List<Event> _getFilteredEvents() {
+    if (_currentFilter == EventFilter.completed) {
+      // Show only one completed event for visual distinction
+      return [_mockEvents[0].copyWith(title: 'Completed: Clean-up Drive')];
+    }
+    // For Upcoming and Ongoings, we'll just show the main list for the mock
+    return _mockEvents;
+  }
+
+  // --- Widget for a single event item ---
+  Widget _buildEventItem(BuildContext context, Event event) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 0),
+      child: Container(
+        padding: const EdgeInsets.all(16.0),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10.0),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              spreadRadius: 1,
+              blurRadius: 5,
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              event.title,
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
+                const SizedBox(width: 5),
+                Text(event.date, style: const TextStyle(color: Colors.grey)),
+                const SizedBox(width: 15),
+                const Icon(Icons.access_time, size: 16, color: Colors.grey),
+                const SizedBox(width: 5),
+                Text(event.time, style: const TextStyle(color: Colors.grey)),
+              ],
+            ),
+            const SizedBox(height: 15),
+            // The "View details" button
+            ElevatedButton.icon(
+              icon: const Icon(Icons.star), // Icon from your mockup
+              label: const Text('View details'),
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => AdminEventDetailScreen(event: event),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.secondary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Filter events based on the dropdown selection
-    final filteredEvents = _allEvents
-        .where((event) => event['status'] == _selectedFilter)
-        .toList();
+    final filteredEvents = _getFilteredEvents();
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20.0, 16.0, 20.0, 0.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Event Type Title
-              Text(
-                '$_selectedFilter Events',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black54,
-                ),
-              ),
-
-              // --- Dropdown Filter ---
-              DropdownButton<String>(
-                value: _selectedFilter,
-                icon: const Icon(Icons.arrow_drop_down, color: Colors.black),
-                underline: Container(), // Removes the default underline
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.w600,
-                ),
-                items: _filterOptions.map((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
-                  );
-                }).toList(),
-                onChanged: (newValue) {
-                  setState(() {
-                    _selectedFilter = newValue!;
-                  });
-                },
-              ),
-            ],
-          ),
+        // Tab Bar for Upcoming/Ongoings/Completed Events
+        TabBar(
+          controller: _tabController,
+          labelColor: Theme.of(context).colorScheme.primary,
+          unselectedLabelColor: Colors.grey,
+          indicatorColor: Theme.of(context).colorScheme.primary,
+          tabs: const [
+            Tab(text: 'Upcoming Events'),
+            Tab(text: 'Ongoings Events'),
+            Tab(text: 'Completed events'),
+          ],
         ),
-        const Divider(),
 
-        // --- Empty State Logic ---
+        // Event List
         Expanded(
-          child: filteredEvents.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.calendar_today_outlined,
-                        size: 60,
-                        color: Colors.grey,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        "No $_selectedFilter events available for posting.",
-                        style: const TextStyle(
-                          fontSize: 18,
-                          color: Colors.grey,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 100), // Push content slightly up
-                    ],
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(top: 16.0, bottom: 8.0),
+                  child: Text(
+                    'Event list',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                   ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                  itemCount: filteredEvents.length,
-                  itemBuilder: (context, index) {
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: ListTile(
-                        leading: Container(
-                          width: 4,
-                          color: _getStatusColor(
-                            filteredEvents[index]['status']!,
-                          ),
-                          height: double.infinity,
-                        ),
-                        title: Text(
-                          filteredEvents[index]['title']!,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Text(
-                          "Date: ${filteredEvents[index]['date']}",
-                        ),
-                        // Add an edit/delete icon for Admin
-                        trailing: const Icon(Icons.edit, size: 16),
-                        onTap: () {
-                          // TODO: Implement navigation to Edit Event Screen
-                        },
-                      ),
-                    );
-                  },
                 ),
+                Expanded(
+                  child: filteredEvents.isEmpty
+                      ? const Center(
+                          child: Text('No events found for this category.'),
+                        )
+                      : ListView.builder(
+                          itemCount: filteredEvents.length,
+                          itemBuilder: (context, index) {
+                            return _buildEventItem(
+                              context,
+                              filteredEvents[index],
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+          ),
         ),
       ],
     );
   }
+}
 
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'Upcoming':
-        return Colors.blue;
-      case 'Ongoing':
-        return Colors.green;
-      case 'Completed':
-        return Colors.grey;
-      default:
-        return Colors.black;
-    }
+// Extension to allow copying of the mock Event object with modifications
+extension on Event {
+  Event copyWith({String? title}) {
+    return Event(
+      id: id,
+      title: title ?? this.title,
+      date: date,
+      time: time,
+      location: location,
+      description: description,
+    );
   }
 }
