@@ -1,7 +1,7 @@
 // lib/screens/admin_post_screen.dart
 
 import 'package:flutter/material.dart';
-import 'create_event_screen.dart'; // Import the Event Creation Page
+import 'admin_create_event_screen.dart'; // Import the Event Creation Page
 
 class AdminPostScreen extends StatelessWidget {
   const AdminPostScreen({super.key});
