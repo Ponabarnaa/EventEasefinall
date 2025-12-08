@@ -1,10 +1,9 @@
-// 
-// lib/screens/admin_event_detail_screen.dart
-
 import 'package:flutter/material.dart';
-import 'admin_event_participants_screen.dart'; // <--- Import the new screen
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'certificate_generator_screen.dart';
+import 'admin_event_participants_screen.dart';
+import 'admin_create_event_screen.dart';
 
-// Ensure your Event class definition is consistent
 class Event {
   final String id;
   final String title;
@@ -12,7 +11,8 @@ class Event {
   final String time;
   final String location;
   final String description;
-  final String posterUrl; // Ensure this is here if you want the image
+  final String posterUrl;
+  final String status;
 
   const Event({
     required this.id,
@@ -21,7 +21,8 @@ class Event {
     required this.time,
     required this.location,
     required this.description,
-    this.posterUrl = '', // Default to empty string if missing
+    required this.status,
+    this.posterUrl = '',
   });
 }
 
@@ -30,120 +31,100 @@ class AdminEventDetailScreen extends StatelessWidget {
 
   const AdminEventDetailScreen({super.key, required this.event});
 
+  Future<void> _deleteEvent(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Delete Event?"),
+        content: const Text("Are you sure? This cannot be undone."),
+        actions: [
+          TextButton(child: const Text("Cancel"), onPressed: () => Navigator.pop(ctx, false)),
+          TextButton(child: const Text("Delete", style: TextStyle(color: Colors.red)), onPressed: () => Navigator.pop(ctx, true)),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await FirebaseFirestore.instance.collection('events').doc(event.id).delete();
+      if (context.mounted) Navigator.pop(context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(event.title)),
+      appBar: AppBar(
+        title: Text(event.title),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => CreateEventScreen(eventToEdit: event))),
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete, color: Colors.red),
+            onPressed: () => _deleteEvent(context),
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            // Display Poster if available
+            // Poster Image
             if (event.posterUrl.isNotEmpty)
               Container(
-                width: double.infinity,
-                height: 200,
-                margin: const EdgeInsets.only(bottom: 20),
+                height: 200, width: double.infinity,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  image: DecorationImage(
-                    image: NetworkImage(event.posterUrl),
-                    fit: BoxFit.cover,
-                  ),
+                  borderRadius: BorderRadius.circular(10),
+                  image: DecorationImage(image: NetworkImage(event.posterUrl), fit: BoxFit.cover),
                 ),
-              ),
-
-            Text(
-              event.title,
-              style: Theme.of(
-                context,
-              ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const Divider(height: 30),
-
-            _buildDetailRow(context, Icons.calendar_today, 'Date', event.date),
-            _buildDetailRow(context, Icons.access_time, 'Time', event.time),
-            _buildDetailRow(
-              context,
-              Icons.location_on,
-              'Location',
-              event.location,
-            ),
-
+              )
+            else
+              Container(height: 150, color: Colors.grey[200], child: const Icon(Icons.image, size: 50)),
+            
             const SizedBox(height: 20),
-            Text(
-              'Description',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              event.description,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
+            
+            // Details
+            _buildDetailRow(context, Icons.calendar_today, "Date", "${event.date} at ${event.time}"),
+            _buildDetailRow(context, Icons.location_on, "Venue", event.location),
+            _buildDetailRow(context, Icons.info, "Status", event.status.toUpperCase()),
+
             const SizedBox(height: 30),
+            const Divider(),
+            const SizedBox(height: 20),
 
-            // Action Buttons
-            Column(
-              children: [
-                // 1. View Participants Button (NEW)
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => AdminEventParticipantsScreen(
-                            eventId: event.id,
-                            eventName: event.title,
-                          ),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.people),
-                    label: const Text('View Participants'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blueAccent, // Distinct color
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 30,
-                        vertical: 15,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                ),
-                
-                const SizedBox(height: 15),
+            // BUTTON 1: View Participants
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.list_alt),
+                label: const Text("View Registered Participants"),
+                onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => AdminEventParticipantsScreen(eventId: event.id, eventName: event.title)));
+                },
+              ),
+            ),
+            
+            const SizedBox(height: 15),
 
-                // 2. Edit Event Button (Existing)
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Edit functionality pending')),
-                      );
-                    },
-                    icon: const Icon(Icons.edit),
-                    label: const Text('Edit Event'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 30,
-                        vertical: 15,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
+            // BUTTON 2: Generate Certificates
+            // This button is now ALWAYS VISIBLE regardless of status
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green[700], 
+                  foregroundColor: Colors.white
                 ),
-              ],
+                icon: const Icon(Icons.workspace_premium),
+                label: const Text("Generate Certificates"),
+                onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => CertificateGeneratorScreen(eventName: event.title)));
+                },
+              ),
             ),
           ],
         ),
@@ -151,40 +132,10 @@ class AdminEventDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailRow(
-    BuildContext context,
-    IconData icon,
-    String label,
-    String value,
-  ) {
+  Widget _buildDetailRow(BuildContext context, IconData icon, String label, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 15.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: Theme.of(context).colorScheme.primary, size: 24),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleMedium?.copyWith(color: Colors.grey[700]),
-                ),
-                Text(
-                  value,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(children: [Icon(icon, color: Theme.of(context).primaryColor), const SizedBox(width: 10), Expanded(child: Text(value, style: const TextStyle(fontSize: 16)))]),
     );
   }
 }

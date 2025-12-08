@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'admin_event_detail_screen.dart';
+import 'admin_event_detail_screen.dart'; // Imports the Event class
 
 enum EventFilter { upcoming, ongoings, completed }
 
@@ -27,9 +27,15 @@ class _AdminEventsScreenState extends State<AdminEventsScreen>
     if (_tabController.indexIsChanging) {
       setState(() {
         switch (_tabController.index) {
-          case 0: _currentFilter = EventFilter.upcoming; break;
-          case 1: _currentFilter = EventFilter.ongoings; break;
-          case 2: _currentFilter = EventFilter.completed; break;
+          case 0:
+            _currentFilter = EventFilter.upcoming;
+            break;
+          case 1:
+            _currentFilter = EventFilter.ongoings;
+            break;
+          case 2:
+            _currentFilter = EventFilter.completed;
+            break;
         }
       });
     }
@@ -42,141 +48,68 @@ class _AdminEventsScreenState extends State<AdminEventsScreen>
     super.dispose();
   }
 
-  Widget _buildEventItem(BuildContext context, Event event) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 0),
-      child: Container(
-        // padding: const EdgeInsets.all(16.0), // Removed padding to let image flush with edges
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(10.0),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 1,
-              blurRadius: 5,
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // --- NEW: DISPLAY POSTER IMAGE ---
-            if (event.posterUrl.isNotEmpty)
-              ClipRRect(
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(10),
-                  topRight: Radius.circular(10),
-                ),
-                child: Image.network(
-                  event.posterUrl,
-                  height: 150,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                      const SizedBox.shrink(), // Hide if error
-                ),
-              ),
-            
-            // Content Container
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    event.title,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleLarge
-                        ?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
-                      const SizedBox(width: 5),
-                      Text(event.date, style: const TextStyle(color: Colors.grey)),
-                      const SizedBox(width: 15),
-                      const Icon(Icons.access_time, size: 16, color: Colors.grey),
-                      const SizedBox(width: 5),
-                      Text(event.time, style: const TextStyle(color: Colors.grey)),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(Icons.location_on, size: 16, color: Colors.grey),
-                      const SizedBox(width: 5),
-                      Expanded(
-                          child: Text(
-                        event.location,
-                        style: const TextStyle(color: Colors.grey),
-                        overflow: TextOverflow.ellipsis,
-                      )),
-                    ],
-                  ),
-                  const SizedBox(height: 15),
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.star),
-                    label: const Text('View details'),
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => AdminEventDetailScreen(event: event),
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.secondary,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+  // --- STATIC DATA FOR COMPLETED EVENTS ---
+  List<Event> _getStaticCompletedEvents() {
+    return [
+      const Event(
+        id: 'static_1',
+        title: 'AI & ML Symposium 2023',
+        date: '2023-11-10',
+        time: '10:00 AM',
+        location: 'Main Auditorium',
+        description: 'A deep dive into Neural Networks and ML algorithms.',
+        status: 'completed', // <--- FIXED: Added status
+        posterUrl: '', 
       ),
-    );
+      const Event(
+        id: 'static_2',
+        title: 'Cyber Security Hackathon',
+        date: '2023-10-05',
+        time: '09:00 AM',
+        location: 'Computer Lab 3',
+        description: '24-hour Capture The Flag (CTF) competition.',
+        status: 'completed', // <--- FIXED: Added status
+        posterUrl: '',
+      ),
+    ];
   }
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        TabBar(
-          controller: _tabController,
-          labelColor: Theme.of(context).colorScheme.primary,
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: Theme.of(context).colorScheme.primary,
-          tabs: const [
-            Tab(text: 'Upcoming Events'),
-            Tab(text: 'Ongoings Events'),
-            Tab(text: 'Completed events'),
-          ],
+        // Tab Bar
+        Container(
+          color: Colors.white,
+          child: TabBar(
+            controller: _tabController,
+            labelColor: Theme.of(context).primaryColor,
+            unselectedLabelColor: Colors.grey,
+            indicatorColor: Theme.of(context).primaryColor,
+            tabs: const [
+              Tab(text: 'Upcoming'),
+              Tab(text: 'Ongoings'),
+              Tab(text: 'Completed'),
+            ],
+          ),
         ),
+        // Content
         Expanded(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Padding(
-                  padding: EdgeInsets.only(top: 16.0, bottom: 8.0),
-                  child: Text(
-                    'Event list',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                  ),
-                ),
-                Expanded(
-                  child: StreamBuilder<QuerySnapshot>(
+            padding: const EdgeInsets.all(10.0),
+            child: _currentFilter == EventFilter.completed
+                // 1. SHOW STATIC DATA FOR COMPLETED TAB
+                ? ListView.builder(
+                    itemCount: _getStaticCompletedEvents().length,
+                    itemBuilder: (context, index) {
+                      return _buildEventItem(
+                          context, _getStaticCompletedEvents()[index]);
+                    },
+                  )
+                // 2. SHOW FIRESTORE DATA FOR OTHERS
+                : StreamBuilder<QuerySnapshot>(
                     stream: FirebaseFirestore.instance
                         .collection('events')
-                        .orderBy('createdAt', descending: true)
                         .snapshots(),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
@@ -186,42 +119,33 @@ class _AdminEventsScreenState extends State<AdminEventsScreen>
                         return const Center(child: Text('No events found.'));
                       }
 
-                      final allDocs = snapshot.data!.docs;
-                      final List<Event> filteredList = [];
+                      final events = snapshot.data!.docs;
+                      List<Event> filteredList = [];
 
-                      for (var doc in allDocs) {
-                        final data = doc.data() as Map<String, dynamic>;
-                        String status = data['status'] ?? 'Upcoming';
+                      // Determine status based on the current tab
+                      String dynamicStatus = _currentFilter == EventFilter.upcoming 
+                          ? 'upcoming' 
+                          : 'ongoing';
 
-                        bool matchesFilter = false;
-                        if (_currentFilter == EventFilter.upcoming && status == 'Upcoming') matchesFilter = true;
-                        if (_currentFilter == EventFilter.ongoings && status == 'Ongoing') matchesFilter = true;
-                        if (_currentFilter == EventFilter.completed && status == 'Completed') matchesFilter = true;
+                      for (var doc in events) {
+                        Map<String, dynamic> data =
+                            doc.data() as Map<String, dynamic>;
+                        
+                        // Parse simple date/time logic if needed
+                        String datePart = data['date'] ?? '';
+                        String timePart = data['time'] ?? '';
 
-                        if (matchesFilter) {
-                          String dateTimeStr = data['dateTime'] ?? '';
-                          String datePart = dateTimeStr;
-                          String timePart = '';
-                          if (dateTimeStr.contains(' at ')) {
-                            final parts = dateTimeStr.split(' at ');
-                            datePart = parts[0];
-                            timePart = parts.length > 1 ? parts[1] : '';
-                          }
-
-                          filteredList.add(Event(
-                            id: doc.id,
-                            title: data['name'] ?? 'No Title',
-                            date: datePart,
-                            time: timePart,
-                            location: data['venue'] ?? 'Unknown',
-                            description: "Department: ${data['department']}\nYear: ${data['year']}",
-                            posterUrl: data['posterUrl'] ?? '', // <--- MAPPED HERE
-                          ));
-                        }
-                      }
-
-                      if (filteredList.isEmpty) {
-                        return const Center(child: Text('No events found.'));
+                        filteredList.add(Event(
+                          id: doc.id,
+                          title: data['name'] ?? 'No Title',
+                          date: datePart,
+                          time: timePart,
+                          location: data['venue'] ?? 'Unknown',
+                          description:
+                              "Department: ${data['department']}\nYear: ${data['year']}",
+                          status: dynamicStatus, // <--- FIXED: Passing the status here
+                          posterUrl: data['posterUrl'] ?? '',
+                        ));
                       }
 
                       return ListView.builder(
@@ -232,12 +156,73 @@ class _AdminEventsScreenState extends State<AdminEventsScreen>
                       );
                     },
                   ),
-                ),
-              ],
-            ),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildEventItem(BuildContext context, Event event) {
+    return Card(
+      elevation: 3,
+      margin: const EdgeInsets.only(bottom: 15),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AdminEventDetailScreen(event: event),
+            ),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(15.0),
+          child: Row(
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: event.status == 'completed'
+                      ? Colors.grey.shade200
+                      : Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.event,
+                    color: event.status == 'completed'
+                        ? Colors.grey
+                        : Theme.of(context).primaryColor,
+                    size: 30),
+              ),
+              const SizedBox(width: 15),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      event.title,
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      "${event.date} • ${event.time}",
+                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                    ),
+                    Text(
+                      event.location,
+                      style: TextStyle(color: Colors.grey[500], fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
