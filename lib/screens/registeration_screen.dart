@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/event.dart'; // Import your EventDetails model
-import 'success_screen.dart'; // Import the SuccessScreen
+import '../models/event.dart'; 
+import 'success_screen.dart'; 
 
 class RegistrationScreen extends StatefulWidget {
   final EventDetails event;
@@ -22,9 +22,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final _emailController = TextEditingController();
 
   // New Controllers
-  final _collegeController = TextEditingController(); // New
-  final _departmentController = TextEditingController(); // New
-  final _yearController = TextEditingController(); // New
+  final _collegeController = TextEditingController(); 
+  final _departmentController = TextEditingController(); 
+  final _yearController = TextEditingController(); 
 
   bool _isLoading = false;
 
@@ -34,13 +34,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     _rollNoController.dispose();
     _phoneNoController.dispose();
     _emailController.dispose();
-    _collegeController.dispose(); // Dispose new controllers
+    _collegeController.dispose();
     _departmentController.dispose();
     _yearController.dispose();
     super.dispose();
   }
 
-  // Function to simulate saving data to Firestore
   Future<void> _registerUser() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
@@ -48,42 +47,33 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       });
 
       try {
-        // 1. Prepare data for Firestore
         final registrationData = {
-          // Assuming EventDetails has an 'id' property. UNCOMMENT and use this line
-          // if you fix your EventDetails model.
-          // 'eventId': widget.event.id,
-          'eventName': widget.event.name,
+          'eventId': widget.event.id, // Fixed: Uncommented and using correct ID
+          'eventName': widget.event.title, // Fixed: Changed .name to .title
           'name': _nameController.text.trim(),
           'rollNo': _rollNoController.text.trim(),
           'phoneNo': _phoneNoController.text.trim(),
           'email': _emailController.text.trim(),
-
-          // --- NEW FIELDS ADDED HERE ---
           'collegeName': _collegeController.text.trim(),
           'department': _departmentController.text.trim(),
           'yearOfStudy': _yearController.text.trim(),
-
-          // -----------------------------
           'registrationDate': Timestamp.now(),
         };
 
-        // 2. Save data to a 'registrations' collection in Firestore
         await FirebaseFirestore.instance
             .collection('registrations')
             .add(registrationData);
 
-        // 3. Navigate to the Success Screen
         if (mounted) {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => SuccessScreen(eventName: widget.event.name),
+              // Fixed: Changed .name to .title
+              builder: (context) => SuccessScreen(eventName: widget.event.title),
             ),
           );
         }
       } catch (e) {
-        // Handle registration error
         print("Registration error: $e");
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -114,7 +104,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "Event registration form (${widget.event.name})",
+                // Fixed: Changed .name to .title
+                "Event registration form (${widget.event.title})",
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
@@ -122,7 +113,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               ),
               const SizedBox(height: 20),
 
-              // --- EXISTING FIELDS ---
               _buildInputField("Name:", _nameController, Icons.person),
               _buildInputField("Rollno:", _rollNoController, Icons.badge),
               _buildInputField(
@@ -138,7 +128,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 keyboardType: TextInputType.emailAddress,
               ),
 
-              // --- NEW FIELDS ADDED HERE ---
               _buildInputField(
                 "College Name:",
                 _collegeController,
@@ -156,10 +145,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 keyboardType: TextInputType.number,
               ),
 
-              // -----------------------------
               const SizedBox(height: 30),
 
-              // Action Buttons
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -178,7 +165,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                           : const Icon(Icons.star),
                       label: Text(_isLoading ? "Registering..." : "Register"),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF7d3c98), // Purple
+                        backgroundColor: const Color(0xFF7d3c98),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 15),
                         shape: RoundedRectangleBorder(
@@ -191,15 +178,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        // Navigate back to the previous screen (HomeScreen)
                         Navigator.pop(context);
                       },
                       icon: const Icon(Icons.close),
                       label: const Text("Cancel"),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(
-                          0xFF9b59b6,
-                        ), // Lighter purple
+                        backgroundColor: const Color(0xFF9b59b6),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 15),
                         shape: RoundedRectangleBorder(

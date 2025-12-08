@@ -1,20 +1,16 @@
-// lib/screens/registration_form_screen.dart
+// lib/screens/admin_registration_form_screen.dart
 import 'package:flutter/material.dart';
-// ✅ FIX 1: Import the correct model class
 import '../models/event.dart';
 
 class RegistrationFormScreen extends StatefulWidget {
-  // ✅ FIX 2: Corrected type from 'Event' to 'EventDetails'
   final EventDetails event;
 
-  // 🛑 FIX: Corrected constructor name to match class name
   const RegistrationFormScreen({super.key, required this.event});
 
   @override
   State<RegistrationFormScreen> createState() => _RegistrationFormScreenState();
 }
 
-// 🛑 FIX: Corrected State class name to match the corrected Widget class name
 class _RegistrationFormScreenState extends State<RegistrationFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
@@ -33,16 +29,14 @@ class _RegistrationFormScreenState extends State<RegistrationFormScreen> {
 
   void _submitRegistration() {
     if (_formKey.currentState!.validate()) {
-      // In a real app, you would save this data to Firestore or a backend API.
-      // For now, we'll just show a success message.
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          // Uses event.name, which is correct on the EventDetails model
-          content: Text('Successfully registered for ${widget.event.name}!'),
+          // Fixed: Changed .name to .title
+          content: Text('Successfully registered for ${widget.event.title}!'),
           backgroundColor: Colors.green,
         ),
       );
-      Navigator.pop(context); // Go back to event detail
+      Navigator.pop(context); 
     }
   }
 
@@ -52,8 +46,8 @@ class _RegistrationFormScreenState extends State<RegistrationFormScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        // Uses event.name, which is correct on the EventDetails model
-        title: Text('Register for ${widget.event.name}'),
+        // Fixed: Changed .name to .title
+        title: Text('Register for ${widget.event.title}'),
         backgroundColor: theme.primaryColor,
         foregroundColor: Colors.white,
       ),
@@ -72,7 +66,8 @@ class _RegistrationFormScreenState extends State<RegistrationFormScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Event: ${widget.event.name}',
+                // Fixed: Changed .name to .title
+                'Event: ${widget.event.title}',
                 style: theme.textTheme.titleMedium?.copyWith(
                   color: Colors.grey[700],
                 ),

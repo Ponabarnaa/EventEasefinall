@@ -1,8 +1,10 @@
+// 
 // lib/screens/admin_event_detail_screen.dart
 
 import 'package:flutter/material.dart';
+import 'admin_event_participants_screen.dart'; // <--- Import the new screen
 
-// Simple structure for a mock Event
+// Ensure your Event class definition is consistent
 class Event {
   final String id;
   final String title;
@@ -10,6 +12,7 @@ class Event {
   final String time;
   final String location;
   final String description;
+  final String posterUrl; // Ensure this is here if you want the image
 
   const Event({
     required this.id,
@@ -18,6 +21,7 @@ class Event {
     required this.time,
     required this.location,
     required this.description,
+    this.posterUrl = '', // Default to empty string if missing
   });
 }
 
@@ -35,6 +39,21 @@ class AdminEventDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
+            // Display Poster if available
+            if (event.posterUrl.isNotEmpty)
+              Container(
+                width: double.infinity,
+                height: 200,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  image: DecorationImage(
+                    image: NetworkImage(event.posterUrl),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+
             Text(
               event.title,
               style: Theme.of(
@@ -53,32 +72,78 @@ class AdminEventDetailScreen extends StatelessWidget {
             ),
 
             const SizedBox(height: 20),
-            Text('Description', style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              'Description',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 10),
             Text(
               event.description,
-              style: Theme.of(context).textTheme.bodyLarge,
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
+            const SizedBox(height: 30),
 
-            const SizedBox(height: 40),
-            // Example of an Admin Action button
-            Center(
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  // Implement functionality to edit event details
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Edit feature Tapped!')),
-                  );
-                },
-                icon: const Icon(Icons.edit),
-                label: const Text('Edit Event'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 30,
-                    vertical: 15,
+            // Action Buttons
+            Column(
+              children: [
+                // 1. View Participants Button (NEW)
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AdminEventParticipantsScreen(
+                            eventId: event.id,
+                            eventName: event.title,
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.people),
+                    label: const Text('View Participants'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blueAccent, // Distinct color
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 30,
+                        vertical: 15,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                
+                const SizedBox(height: 15),
+
+                // 2. Edit Event Button (Existing)
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Edit functionality pending')),
+                      );
+                    },
+                    icon: const Icon(Icons.edit),
+                    label: const Text('Edit Event'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 30,
+                        vertical: 15,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

@@ -6,7 +6,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart'; // Import for date/time formatting
 
@@ -228,7 +227,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.school),
                 ),
-                value: _selectedYear,
+                initialValue: _selectedYear,
                 hint: const Text('Select Year of Study (e.g., 1st, 2nd)'),
                 items: ['1st Year', '2nd Year', '3rd Year', '4th Year']
                     .map(

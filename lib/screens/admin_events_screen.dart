@@ -1,40 +1,7 @@
-// lib/screens/admin_events_screen.dart (UPDATED)
-
 import 'package:flutter/material.dart';
-import 'admin_event_detail_screen.dart'; // Import the new detail screen
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'admin_event_detail_screen.dart';
 
-// Mock Event data for demonstration
-const List<Event> _mockEvents = [
-  Event(
-    id: 'e1',
-    title: 'Community Clean-up Drive',
-    date: 'December 15, 2025',
-    time: '9:00 AM - 12:00 PM',
-    location: 'Central Park Entrance',
-    description:
-        'Join us for our annual community clean-up drive. Supplies will be provided. Please wear comfortable clothes and shoes.',
-  ),
-  Event(
-    id: 'e2',
-    title: 'Year-End Gala Dinner',
-    date: 'December 31, 2025',
-    time: '7:00 PM onwards',
-    location: 'Grand Ballroom, City Hall',
-    description:
-        'A formal event to celebrate the achievements of the year. RSVP required by Dec 20th. Dress code: Black Tie.',
-  ),
-  Event(
-    id: 'e3',
-    title: 'Upcoming Events Tab Test',
-    date: 'January 10, 2026',
-    time: '4:00 PM - 5:00 PM',
-    location: 'Online Webinar',
-    description:
-        'This is a test event for the upcoming events tab. Check the details and navigation.',
-  ),
-];
-
-// Helper to filter events based on the tab
 enum EventFilter { upcoming, ongoings, completed }
 
 class AdminEventsScreen extends StatefulWidget {
@@ -60,15 +27,9 @@ class _AdminEventsScreenState extends State<AdminEventsScreen>
     if (_tabController.indexIsChanging) {
       setState(() {
         switch (_tabController.index) {
-          case 0:
-            _currentFilter = EventFilter.upcoming;
-            break;
-          case 1:
-            _currentFilter = EventFilter.ongoings;
-            break;
-          case 2:
-            _currentFilter = EventFilter.completed;
-            break;
+          case 0: _currentFilter = EventFilter.upcoming; break;
+          case 1: _currentFilter = EventFilter.ongoings; break;
+          case 2: _currentFilter = EventFilter.completed; break;
         }
       });
     }
@@ -81,22 +42,11 @@ class _AdminEventsScreenState extends State<AdminEventsScreen>
     super.dispose();
   }
 
-  // NOTE: In a real app, this function would filter events based on their actual date/status
-  List<Event> _getFilteredEvents() {
-    if (_currentFilter == EventFilter.completed) {
-      // Show only one completed event for visual distinction
-      return [_mockEvents[0].copyWith(title: 'Completed: Clean-up Drive')];
-    }
-    // For Upcoming and Ongoings, we'll just show the main list for the mock
-    return _mockEvents;
-  }
-
-  // --- Widget for a single event item ---
   Widget _buildEventItem(BuildContext context, Event event) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 0),
       child: Container(
-        padding: const EdgeInsets.all(16.0),
+        // padding: const EdgeInsets.all(16.0), // Removed padding to let image flush with edges
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(10.0),
@@ -111,42 +61,81 @@ class _AdminEventsScreenState extends State<AdminEventsScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              event.title,
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
-                const SizedBox(width: 5),
-                Text(event.date, style: const TextStyle(color: Colors.grey)),
-                const SizedBox(width: 15),
-                const Icon(Icons.access_time, size: 16, color: Colors.grey),
-                const SizedBox(width: 5),
-                Text(event.time, style: const TextStyle(color: Colors.grey)),
-              ],
-            ),
-            const SizedBox(height: 15),
-            // The "View details" button
-            ElevatedButton.icon(
-              icon: const Icon(Icons.star), // Icon from your mockup
-              label: const Text('View details'),
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => AdminEventDetailScreen(event: event),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.secondary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
+            // --- NEW: DISPLAY POSTER IMAGE ---
+            if (event.posterUrl.isNotEmpty)
+              ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(10),
+                  topRight: Radius.circular(10),
                 ),
+                child: Image.network(
+                  event.posterUrl,
+                  height: 150,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                      const SizedBox.shrink(), // Hide if error
+                ),
+              ),
+            
+            // Content Container
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    event.title,
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleLarge
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
+                      const SizedBox(width: 5),
+                      Text(event.date, style: const TextStyle(color: Colors.grey)),
+                      const SizedBox(width: 15),
+                      const Icon(Icons.access_time, size: 16, color: Colors.grey),
+                      const SizedBox(width: 5),
+                      Text(event.time, style: const TextStyle(color: Colors.grey)),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(Icons.location_on, size: 16, color: Colors.grey),
+                      const SizedBox(width: 5),
+                      Expanded(
+                          child: Text(
+                        event.location,
+                        style: const TextStyle(color: Colors.grey),
+                        overflow: TextOverflow.ellipsis,
+                      )),
+                    ],
+                  ),
+                  const SizedBox(height: 15),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.star),
+                    label: const Text('View details'),
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => AdminEventDetailScreen(event: event),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.secondary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -157,11 +146,8 @@ class _AdminEventsScreenState extends State<AdminEventsScreen>
 
   @override
   Widget build(BuildContext context) {
-    final filteredEvents = _getFilteredEvents();
-
     return Column(
       children: [
-        // Tab Bar for Upcoming/Ongoings/Completed Events
         TabBar(
           controller: _tabController,
           labelColor: Theme.of(context).colorScheme.primary,
@@ -173,8 +159,6 @@ class _AdminEventsScreenState extends State<AdminEventsScreen>
             Tab(text: 'Completed events'),
           ],
         ),
-
-        // Event List
         Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -189,39 +173,71 @@ class _AdminEventsScreenState extends State<AdminEventsScreen>
                   ),
                 ),
                 Expanded(
-                  child: filteredEvents.isEmpty
-                      ? const Center(
-                          child: Text('No events found for this category.'),
-                        )
-                      : ListView.builder(
-                          itemCount: filteredEvents.length,
-                          itemBuilder: (context, index) {
-                            return _buildEventItem(
-                              context,
-                              filteredEvents[index],
-                            );
-                          },
-                        ),
+                  child: StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('events')
+                        .orderBy('createdAt', descending: true)
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        return const Center(child: Text('No events found.'));
+                      }
+
+                      final allDocs = snapshot.data!.docs;
+                      final List<Event> filteredList = [];
+
+                      for (var doc in allDocs) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        String status = data['status'] ?? 'Upcoming';
+
+                        bool matchesFilter = false;
+                        if (_currentFilter == EventFilter.upcoming && status == 'Upcoming') matchesFilter = true;
+                        if (_currentFilter == EventFilter.ongoings && status == 'Ongoing') matchesFilter = true;
+                        if (_currentFilter == EventFilter.completed && status == 'Completed') matchesFilter = true;
+
+                        if (matchesFilter) {
+                          String dateTimeStr = data['dateTime'] ?? '';
+                          String datePart = dateTimeStr;
+                          String timePart = '';
+                          if (dateTimeStr.contains(' at ')) {
+                            final parts = dateTimeStr.split(' at ');
+                            datePart = parts[0];
+                            timePart = parts.length > 1 ? parts[1] : '';
+                          }
+
+                          filteredList.add(Event(
+                            id: doc.id,
+                            title: data['name'] ?? 'No Title',
+                            date: datePart,
+                            time: timePart,
+                            location: data['venue'] ?? 'Unknown',
+                            description: "Department: ${data['department']}\nYear: ${data['year']}",
+                            posterUrl: data['posterUrl'] ?? '', // <--- MAPPED HERE
+                          ));
+                        }
+                      }
+
+                      if (filteredList.isEmpty) {
+                        return const Center(child: Text('No events found.'));
+                      }
+
+                      return ListView.builder(
+                        itemCount: filteredList.length,
+                        itemBuilder: (context, index) {
+                          return _buildEventItem(context, filteredList[index]);
+                        },
+                      );
+                    },
+                  ),
                 ),
               ],
             ),
           ),
         ),
       ],
-    );
-  }
-}
-
-// Extension to allow copying of the mock Event object with modifications
-extension on Event {
-  Event copyWith({String? title}) {
-    return Event(
-      id: id,
-      title: title ?? this.title,
-      date: date,
-      time: time,
-      location: location,
-      description: description,
     );
   }
 }

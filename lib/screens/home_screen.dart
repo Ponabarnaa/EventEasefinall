@@ -1,7 +1,179 @@
-import 'package:flutter/material.dart'; // <--- Added the required import
+// import 'package:flutter/material.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart';
+// import '../models/event.dart'; 
+// import 'registeration_screen.dart';
+
+// class HomeScreen extends StatefulWidget {
+//   const HomeScreen({super.key});
+
+//   @override
+//   State<HomeScreen> createState() => _HomeScreenState();
+// }
+
+// class _HomeScreenState extends State<HomeScreen> {
+//   String _selectedFilter = "Upcoming";
+
+//   void _navigateToRegistration(EventDetails event) {
+//     Navigator.push(
+//       context,
+//       MaterialPageRoute(builder: (context) => RegistrationScreen(event: event)),
+//     );
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(title: const Text("User Dashboard")),
+//       body: Column(
+//         crossAxisAlignment: CrossAxisAlignment.start,
+//         children: [
+//           // Filter Dropdown
+//           Padding(
+//             padding: const EdgeInsets.only(left: 10.0, top: 10.0),
+//             child: DropdownButton<String>(
+//               value: _selectedFilter,
+//               items: const [
+//                 DropdownMenuItem(value: "Upcoming", child: Text("Upcoming")),
+//                 DropdownMenuItem(value: "Ongoing", child: Text("Ongoing")),
+//                 DropdownMenuItem(value: "Completed", child: Text("Completed")),
+//               ],
+//               onChanged: (val) {
+//                 if (val != null) setState(() => _selectedFilter = val);
+//               },
+//             ),
+//           ),
+          
+//           // Event List
+//           Expanded(
+//             child: StreamBuilder<QuerySnapshot>(
+//               stream: FirebaseFirestore.instance
+//                   .collection('events')
+//                   .where('status', isEqualTo: _selectedFilter)
+//                   .snapshots(),
+//               builder: (context, snapshot) {
+//                 if (snapshot.connectionState == ConnectionState.waiting) {
+//                   return const Center(child: CircularProgressIndicator());
+//                 }
+//                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+//                   return const Center(child: Text("No events found."));
+//                 }
+
+//                 final events = snapshot.data!.docs.map((doc) {
+//                   return EventDetails.fromFirestore(
+//                       doc.data() as Map<String, dynamic>, doc.id);
+//                 }).toList();
+
+//                 return ListView.builder(
+//                   itemCount: events.length,
+//                   itemBuilder: (context, index) {
+//                     final event = events[index];
+//                     return Card(
+//                       margin: const EdgeInsets.all(10),
+//                       elevation: 4,
+//                       shape: RoundedRectangleBorder(
+//                         borderRadius: BorderRadius.circular(12),
+//                       ),
+//                       child: Column(
+//                         crossAxisAlignment: CrossAxisAlignment.start,
+//                         children: [
+//                           // --- POSTER IMAGE SECTION ---
+//                           if (event.posterUrl.isNotEmpty)
+//                             ClipRRect(
+//                               borderRadius: const BorderRadius.only(
+//                                 topLeft: Radius.circular(12),
+//                                 topRight: Radius.circular(12),
+//                               ),
+//                               child: Image.network(
+//                                 event.posterUrl,
+//                                 height: 180, // Adjust height as needed
+//                                 width: double.infinity,
+//                                 fit: BoxFit.cover,
+//                                 errorBuilder: (context, error, stackTrace) {
+//                                   return Container(
+//                                     height: 180,
+//                                     color: Colors.grey[300],
+//                                     child: const Center(
+//                                         child: Icon(Icons.broken_image,
+//                                             size: 50, color: Colors.grey)),
+//                                   );
+//                                 },
+//                                 loadingBuilder: (context, child, loadingProgress) {
+//                                   if (loadingProgress == null) return child;
+//                                   return Container(
+//                                     height: 180,
+//                                     color: Colors.grey[200],
+//                                     child: const Center(
+//                                         child: CircularProgressIndicator()),
+//                                   );
+//                                 },
+//                               ),
+//                             ),
+//                           // ----------------------------
+
+//                           Padding(
+//                             padding: const EdgeInsets.all(12.0),
+//                             child: Column(
+//                               crossAxisAlignment: CrossAxisAlignment.start,
+//                               children: [
+//                                 Text(
+//                                   event.title,
+//                                   style: const TextStyle(
+//                                     fontSize: 18,
+//                                     fontWeight: FontWeight.bold,
+//                                   ),
+//                                 ),
+//                                 const SizedBox(height: 8),
+//                                 Row(
+//                                   children: [
+//                                     const Icon(Icons.calendar_today, size: 16),
+//                                     const SizedBox(width: 5),
+//                                     Text(event.date),
+//                                     const SizedBox(width: 15),
+//                                     const Icon(Icons.location_on, size: 16),
+//                                     const SizedBox(width: 5),
+//                                     Expanded(
+//                                       child: Text(
+//                                         event.location,
+//                                         overflow: TextOverflow.ellipsis,
+//                                       ),
+//                                     ),
+//                                   ],
+//                                 ),
+//                                 const SizedBox(height: 12),
+//                                 SizedBox(
+//                                   width: double.infinity,
+//                                   child: ElevatedButton(
+//                                     onPressed: () => _navigateToRegistration(event),
+//                                     style: ElevatedButton.styleFrom(
+//                                       backgroundColor: Colors.black87,
+//                                       foregroundColor: Colors.white,
+//                                       shape: RoundedRectangleBorder(
+//                                         borderRadius: BorderRadius.circular(8.0),
+//                                       ),
+//                                     ),
+//                                     child: const Text("View full details"),
+//                                   ),
+//                                 ),
+//                               ],
+//                             ),
+//                           ),
+//                         ],
+//                       ),
+//                     );
+//                   },
+//                 );
+//               },
+//             ),
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+// }
+import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/event.dart'; // Assuming your EventDetails model is here
-import 'registeration_screen.dart'; // Import the registration screen
+import '../models/event.dart'; 
+import 'registeration_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -13,9 +185,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   String _selectedFilter = "Upcoming";
 
-  // CORRECTED: Only one definition of the navigation function is kept
   void _navigateToRegistration(EventDetails event) {
-    // Navigate to the registration screen, passing the event details
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => RegistrationScreen(event: event)),
@@ -25,116 +195,140 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("User Dashboard")),
+      appBar: AppBar(
+        title: const Text("User Dashboard"),
+        // --- ADDED BACK BUTTON ---
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            // This will navigate back to the previous screen (e.g., Login)
+            Navigator.of(context).pop(); 
+          },
+        ),
+        // -------------------------
+      ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Filter Dropdown
           Padding(
-            padding: const EdgeInsets.only(
-              left: 10.0,
-            ), // Padding for the dropdown
-            child: DropdownButton(
+            padding: const EdgeInsets.only(left: 10.0, top: 10.0),
+            child: DropdownButton<String>(
               value: _selectedFilter,
               items: const [
                 DropdownMenuItem(value: "Upcoming", child: Text("Upcoming")),
                 DropdownMenuItem(value: "Ongoing", child: Text("Ongoing")),
                 DropdownMenuItem(value: "Completed", child: Text("Completed")),
               ],
-              onChanged: (value) {
-                setState(() {
-                  _selectedFilter = value!;
-                });
+              onChanged: (val) {
+                if (val != null) setState(() => _selectedFilter = val);
               },
             ),
           ),
-
+          
+          // Event List
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
-                  .collection("events")
-                  .where("status", isEqualTo: _selectedFilter)
+                  .collection('events')
+                  .where('status', isEqualTo: _selectedFilter)
                   .snapshots(),
               builder: (context, snapshot) {
-                if (!snapshot.hasData) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
-
-                final docs = snapshot.data!.docs;
-
-                if (docs.isEmpty) {
-                  return Center(child: Text("No $_selectedFilter events."));
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(child: Text("No events found."));
                 }
 
-                return ListView.builder(
-                  itemCount: docs.length,
-                  itemBuilder: (context, index) {
-                    EventDetails event = EventDetails.fromFirestore(
-                      docs[index],
-                    );
+                final events = snapshot.data!.docs.map((doc) {
+                  return EventDetails.fromFirestore(
+                      doc.data() as Map<String, dynamic>, doc.id);
+                }).toList();
 
+                return ListView.builder(
+                  itemCount: events.length,
+                  itemBuilder: (context, index) {
+                    final event = events[index];
                     return Card(
                       margin: const EdgeInsets.all(10),
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // 1. Event Image Banner
-                          Image.network(
-                            event.posterUrl,
-                            height: 180,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                          ),
+                          // --- POSTER IMAGE (Kept from previous steps) ---
+                          if (event.posterUrl.isNotEmpty)
+                            ClipRRect(
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(12),
+                                topRight: Radius.circular(12),
+                              ),
+                              child: Image.network(
+                                event.posterUrl,
+                                height: 180,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    height: 180,
+                                    color: Colors.grey[300],
+                                    child: const Center(
+                                        child: Icon(Icons.broken_image,
+                                            size: 50, color: Colors.grey)),
+                                  );
+                                },
+                              ),
+                            ),
+                          // ----------------------------------------------
 
-                          // 2. Event Details (Name, Venue, Time, Dept)
                           Padding(
-                            padding: const EdgeInsets.all(10),
+                            padding: const EdgeInsets.all(12.0),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  event.name,
+                                  event.title,
                                   style: const TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                const SizedBox(height: 4),
-                                Text("Venue: ${event.venue}"),
-                                Text("Time: ${event.time}"),
-                                Text("Department: ${event.department}"),
-
-                                // Placeholder for Event Description/More Details (Frame 1)
                                 const SizedBox(height: 8),
-                                const Text("Event Description placeholder..."),
+                                Row(
+                                  children: [
+                                    const Icon(Icons.calendar_today, size: 16),
+                                    const SizedBox(width: 5),
+                                    Text(event.date),
+                                    const SizedBox(width: 15),
+                                    const Icon(Icons.location_on, size: 16),
+                                    const SizedBox(width: 5),
+                                    Expanded(
+                                      child: Text(
+                                        event.location,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton(
+                                    onPressed: () => _navigateToRegistration(event),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.black87,
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8.0),
+                                      ),
+                                    ),
+                                    child: const Text("View full details"),
+                                  ),
+                                ),
                               ],
-                            ),
-                          ),
-
-                          // 3. View Full Details Button
-                          Container(
-                            width: double.infinity, // Full width
-                            // Padding only below the details
-                            padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
-                            child: ElevatedButton(
-                              onPressed: () => _navigateToRegistration(event),
-                              style: ElevatedButton.styleFrom(
-                                // Styling to match the dark button in Frame 1
-                                backgroundColor: Colors.black87,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 15,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(5.0),
-                                ),
-                              ),
-                              child: const Text(
-                                "View full details",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
                             ),
                           ),
                         ],
