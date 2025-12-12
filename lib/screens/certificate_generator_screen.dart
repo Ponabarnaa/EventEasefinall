@@ -21,32 +21,37 @@ class _CertificateGeneratorScreenState extends State<CertificateGeneratorScreen>
 
   Future<void> pickExcelAndGenerate() async {
     try {
-      // 1. Pick Excel with 'withData: true' to avoid permission issues
+      // 1. Pick Excel File
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['xlsx'],
-        withData: true, // <--- CRITICAL FIX
+        // 👇👇👇 THIS IS THE KEY FIX YOU ARE MISSING 👇👇👇
+        withData: true, 
+        // 👆👆👆 WITHOUT THIS, IT WILL FAIL ON ANDROID 👆👆👆
       );
 
-      if (result == null) return;
+      if (result == null) return; // User cancelled
 
       setState(() {
         _generating = true;
         _statusMessage = "Processing...";
       });
 
-      // 2. Load Template
+      // 2. Load Template Image
       pw.MemoryImage? templateImage;
       try {
         final ByteData templateBytes = await rootBundle.load('assets/cert_template.jpg');
         templateImage = pw.MemoryImage(templateBytes.buffer.asUint8List());
       } catch (e) {
-        print("Template missing: $e");
+        debugPrint("Template missing: $e");
       }
 
-      // 3. Decode Excel from BYTES (not path)
-      // This works even if the file path is restricted
-      var bytes = result.files.single.bytes!;
+      // 3. Decode Excel from BYTES (Not Path)
+      // This is the key fix for the "fail" error
+      if (result.files.single.bytes == null) {
+          throw Exception("Could not read file data. Please try again.");
+      }
+      var bytes = result.files.single.bytes!; 
       var excel = Excel.decodeBytes(bytes);
 
       // 4. Output Folder
@@ -57,6 +62,7 @@ class _CertificateGeneratorScreenState extends State<CertificateGeneratorScreen>
 
       int count = 0;
 
+      // 5. Generate PDFs
       for (var table in excel.tables.keys) {
         var rows = excel.tables[table]!.rows;
         // Start from i=1 (Skip Header)
@@ -76,10 +82,19 @@ class _CertificateGeneratorScreenState extends State<CertificateGeneratorScreen>
                   children: [
                     if (templateImage != null)
                       pw.Positioned.fill(child: pw.Image(templateImage, fit: pw.BoxFit.cover)),
+                    
+                    // Center the Name
                     pw.Center(
-                      child: pw.Text(
-                        participantName.toUpperCase(),
-                        style: pw.TextStyle(fontSize: 40, fontWeight: pw.FontWeight.bold),
+                      child: pw.Padding(
+                        padding: const pw.EdgeInsets.only(bottom: 20), // Adjust this to move text up/down
+                        child: pw.Text(
+                          participantName.toUpperCase(),
+                          style: pw.TextStyle(
+                            fontSize: 30, 
+                            fontWeight: pw.FontWeight.bold,
+                            color: PdfColors.black
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -100,7 +115,7 @@ class _CertificateGeneratorScreenState extends State<CertificateGeneratorScreen>
 
     } catch (e) {
       setState(() => _generating = false);
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
+      if(mounted) _showError(e.toString());
     }
   }
 
@@ -109,8 +124,19 @@ class _CertificateGeneratorScreenState extends State<CertificateGeneratorScreen>
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text("Success"),
-        content: Text("Generated $count certificates.\nSaved at:\n$path"),
+        content: Text("Generated $count certificates.\n\nSaved at:\n$path"),
         actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("OK"))],
+      ),
+    );
+  }
+
+  void _showError(String error) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Error"),
+        content: Text("Could not generate certificates.\n\n$error"),
+        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Close"))],
       ),
     );
   }
@@ -121,10 +147,18 @@ class _CertificateGeneratorScreenState extends State<CertificateGeneratorScreen>
       appBar: AppBar(title: const Text("Generate Certificates")),
       body: Center(
         child: _generating
-            ? Column(mainAxisAlignment: MainAxisAlignment.center, children: [const CircularProgressIndicator(), const SizedBox(height: 20), Text(_statusMessage)])
+            ? Column(
+                mainAxisAlignment: MainAxisAlignment.center, 
+                children: [
+                  const CircularProgressIndicator(), 
+                  const SizedBox(height: 20), 
+                  Text(_statusMessage)
+                ]
+              )
             : ElevatedButton.icon(
-                icon: const Icon(Icons.upload_file),
-                label: const Text("Upload Excel (Col B: Name)"),
+                style: ElevatedButton.styleFrom(padding: const EdgeInsets.all(20)),
+                icon: const Icon(Icons.upload_file, size: 30),
+                label: const Text("Upload Excel & Generate\n(Col A: Serial, Col B: Name)", textAlign: TextAlign.center),
                 onPressed: pickExcelAndGenerate,
               ),
       ),
