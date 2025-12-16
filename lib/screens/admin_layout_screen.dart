@@ -59,56 +59,191 @@ class _AdminLayoutScreenState extends State<AdminLayoutScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Admin Dashboard'),
-        actions: [
-          // Notification Icon - NOW NAVIGATES
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: _navigateToNotifications,
+      // Enhanced AppBar with gradient background
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.blue.shade600, Colors.purple.shade600],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.blue.withOpacity(0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-          // Logout button only visible on the Home/Events tab (index 1)
-          if (_selectedIndex == 1)
-            IconButton(icon: const Icon(Icons.logout), onPressed: _logout),
-          // Profile Icon - NOW NAVIGATES
-          IconButton(
-            icon: const Icon(Icons.person_outline),
-            onPressed: _navigateToProfile,
+          child: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            title: const Text(
+              'Admin Dashboard',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+                color: Colors.white,
+              ),
+            ),
+            actions: [
+              // Notification Icon with enhanced styling
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.15),
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+                  iconSize: 26,
+                  onPressed: _navigateToNotifications,
+                  tooltip: 'Notifications',
+                ),
+              ),
+              // Logout button with enhanced styling (only on Home/Events tab)
+              if (_selectedIndex == 1)
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.15),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.logout, color: Colors.white),
+                    iconSize: 26,
+                    onPressed: _logout,
+                    tooltip: 'Logout',
+                  ),
+                ),
+              // Profile Icon with enhanced styling
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.15),
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.person_outline, color: Colors.white),
+                  iconSize: 26,
+                  onPressed: _navigateToProfile,
+                  tooltip: 'Profile',
+                ),
+              ),
+              const SizedBox(width: 12),
+            ],
           ),
-          const SizedBox(width: 8),
-        ],
+        ),
       ),
 
-      // Display the selected screen based on the bottom navigation index
-      body: _widgetOptions.elementAt(_selectedIndex),
-
-      // Bottom Navigation Bar (Kept as-is)
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        showSelectedLabels: false,
-        showUnselectedLabels: false,
-        selectedItemColor: Theme.of(context).primaryColor,
-        unselectedItemColor: Colors.grey,
-        iconSize: 30,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
+      // Display the selected screen with animated transition
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        transitionBuilder: (Widget child, Animation<double> animation) {
+          return FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0.02, 0),
+                end: Offset.zero,
+              ).animate(CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeInOut,
+              )),
+              child: child,
+            ),
+          );
         },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.chat_bubble_outline),
-            label: 'Post',
+        child: Container(
+          key: ValueKey<int>(_selectedIndex),
+          child: _widgetOptions.elementAt(_selectedIndex),
+        ),
+      ),
+
+      // Enhanced Bottom Navigation Bar with floating style
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 16,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            label: 'Home',
+          child: BottomNavigationBar(
+            currentIndex: _selectedIndex,
+            showSelectedLabels: false,
+            showUnselectedLabels: false,
+            selectedItemColor: Colors.blue.shade600,
+            unselectedItemColor: Colors.grey.shade400,
+            iconSize: 28,
+            elevation: 0,
+            backgroundColor: Colors.white,
+            type: BottomNavigationBarType.fixed,
+            onTap: (index) {
+              setState(() {
+                _selectedIndex = index;
+              });
+            },
+            items: [
+              BottomNavigationBarItem(
+                icon: _buildNavIcon(Icons.chat_bubble_outline, 0),
+                label: 'Post',
+              ),
+              BottomNavigationBarItem(
+                icon: _buildNavIcon(Icons.home_outlined, 1),
+                label: 'Home',
+              ),
+              BottomNavigationBarItem(
+                icon: _buildNavIcon(Icons.help_outline, 2),
+                label: 'Help',
+              ),
+            ],
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.help_outline),
-            label: 'Help',
-          ),
-        ],
+        ),
+      ),
+    );
+  }
+
+  // Helper method to build animated navigation icons
+  Widget _buildNavIcon(IconData icon, int index) {
+    final isSelected = _selectedIndex == index;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
+      padding: EdgeInsets.all(isSelected ? 12 : 8),
+      decoration: BoxDecoration(
+        gradient: isSelected
+            ? LinearGradient(
+                colors: [Colors.blue.shade400, Colors.purple.shade400],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : null,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: isSelected
+            ? [
+                BoxShadow(
+                  color: Colors.blue.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ]
+            : [],
+      ),
+      child: Icon(
+        icon,
+        color: isSelected ? Colors.white : Colors.grey.shade400,
+        size: isSelected ? 28 : 26,
       ),
     );
   }

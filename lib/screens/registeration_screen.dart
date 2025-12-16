@@ -77,8 +77,25 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         print("Registration error: $e");
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Registration failed. Please try again.'),
+            SnackBar(
+              content: const Row(
+                children: [
+                  Icon(Icons.error_outline, color: Colors.white),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Registration failed. Please try again.',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.red.shade700,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             ),
           );
         }
@@ -95,7 +112,31 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("User Dashboard")),
+      backgroundColor: Colors.grey[50],
+      appBar: AppBar(
+        title: const Text(
+          "Event Registration",
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 22,
+          ),
+        ),
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                const Color(0xFF7d3c98),
+                const Color(0xFF9b59b6),
+              ],
+            ),
+          ),
+        ),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
         child: Form(
@@ -103,101 +144,302 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                // Fixed: Changed .name to .title
-                "Event registration form (${widget.event.title})",
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
+              // Event Info Card
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      const Color(0xFF7d3c98).withOpacity(0.1),
+                      const Color(0xFF9b59b6).withOpacity(0.05),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: const Color(0xFF7d3c98).withOpacity(0.3),
+                    width: 1.5,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                const Color(0xFF7d3c98),
+                                const Color(0xFF9b59b6),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.event,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Registering for",
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey[600],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                widget.event.title,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF7d3c98),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 20),
 
-              _buildInputField("Name:", _nameController, Icons.person),
-              _buildInputField("Rollno:", _rollNoController, Icons.badge),
-              _buildInputField(
-                "Phoneno:",
-                _phoneNoController,
-                Icons.phone,
-                keyboardType: TextInputType.phone,
-              ),
-              _buildInputField(
-                "Email:",
-                _emailController,
-                Icons.email,
-                keyboardType: TextInputType.emailAddress,
+              const SizedBox(height: 28),
+
+              // Form Card
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 20,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Personal Information Section
+                    _buildSectionHeader(
+                      "Personal Information",
+                      Icons.person_outline,
+                    ),
+                    const SizedBox(height: 16),
+
+                    _buildInputField("Full Name", _nameController, Icons.person),
+                    _buildInputField("Roll Number", _rollNoController, Icons.badge),
+                    _buildInputField(
+                      "Phone Number",
+                      _phoneNoController,
+                      Icons.phone,
+                      keyboardType: TextInputType.phone,
+                    ),
+                    _buildInputField(
+                      "Email Address",
+                      _emailController,
+                      Icons.email,
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Divider
+                    Divider(
+                      color: Colors.grey[300],
+                      thickness: 1,
+                      height: 32,
+                    ),
+
+                    // Academic Information Section
+                    _buildSectionHeader(
+                      "Academic Information",
+                      Icons.school_outlined,
+                    ),
+                    const SizedBox(height: 16),
+
+                    _buildInputField(
+                      "College Name",
+                      _collegeController,
+                      Icons.school,
+                    ),
+                    _buildInputField(
+                      "Department",
+                      _departmentController,
+                      Icons.business,
+                    ),
+                    _buildInputField(
+                      "Year of Study",
+                      _yearController,
+                      Icons.calendar_today,
+                      keyboardType: TextInputType.number,
+                    ),
+                  ],
+                ),
               ),
 
-              _buildInputField(
-                "College Name:",
-                _collegeController,
-                Icons.school,
-              ),
-              _buildInputField(
-                "Department:",
-                _departmentController,
-                Icons.business,
-              ),
-              _buildInputField(
-                "Year of Study:",
-                _yearController,
-                Icons.calendar_today,
-                keyboardType: TextInputType.number,
-              ),
+              const SizedBox(height: 32),
 
-              const SizedBox(height: 30),
-
+              // Action Buttons
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: _isLoading ? null : _registerUser,
-                      icon: _isLoading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Icon(Icons.star),
-                      label: Text(_isLoading ? "Registering..." : "Register"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF7d3c98),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 15),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      height: 56,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: _isLoading
+                              ? [Colors.grey.shade400, Colors.grey.shade500]
+                              : [
+                                  const Color(0xFF7d3c98),
+                                  const Color(0xFF9b59b6),
+                                ],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: _isLoading
+                            ? []
+                            : [
+                                BoxShadow(
+                                  color: const Color(0xFF7d3c98).withOpacity(0.4),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 6),
+                                ),
+                              ],
+                      ),
+                      child: ElevatedButton.icon(
+                        onPressed: _isLoading ? null : _registerUser,
+                        icon: _isLoading
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(Icons.check_circle_outline, size: 22),
+                        label: Text(
+                          _isLoading ? "Processing..." : "Register Now",
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          foregroundColor: Colors.white,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 15),
+                  const SizedBox(width: 16),
                   Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      icon: const Icon(Icons.close),
-                      label: const Text("Cancel"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF9b59b6),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 15),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.grey.shade300,
+                          width: 2,
+                        ),
+                      ),
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        icon: const Icon(Icons.close, size: 22),
+                        label: const Text(
+                          "Cancel",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          foregroundColor: Colors.grey.shade700,
+                          shadowColor: Colors.transparent,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ],
               ),
+
+              const SizedBox(height: 16),
+
+              // Help Text
+              Center(
+                child: Text(
+                  "All fields are required",
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey[600],
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: const Color(0xFF7d3c98).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            icon,
+            color: const Color(0xFF7d3c98),
+            size: 20,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF7d3c98),
+          ),
+        ),
+      ],
     );
   }
 
@@ -208,21 +450,87 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     TextInputType keyboardType = TextInputType.text,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 15.0),
+      padding: const EdgeInsets.only(bottom: 20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 5),
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 8),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+                color: Colors.grey[800],
+              ),
+            ),
+          ),
           TextFormField(
             controller: controller,
             keyboardType: keyboardType,
+            style: const TextStyle(fontSize: 15),
             decoration: InputDecoration(
-              prefixIcon: Icon(icon, color: Colors.grey),
-              border: const OutlineInputBorder(),
+              prefixIcon: Container(
+                margin: const EdgeInsets.only(right: 12),
+                decoration: BoxDecoration(
+                  border: Border(
+                    right: BorderSide(
+                      color: Colors.grey.shade300,
+                      width: 1,
+                    ),
+                  ),
+                ),
+                child: Icon(
+                  icon,
+                  color: const Color(0xFF7d3c98),
+                  size: 22,
+                ),
+              ),
+              hintText: "Enter your $label",
+              hintStyle: TextStyle(
+                color: Colors.grey[400],
+                fontSize: 14,
+              ),
+              filled: true,
+              fillColor: Colors.grey[50],
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: Colors.grey.shade300,
+                  width: 1.5,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: Colors.grey.shade300,
+                  width: 1.5,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(
+                  color: Color(0xFF7d3c98),
+                  width: 2,
+                ),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: Colors.red.shade400,
+                  width: 1.5,
+                ),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: Colors.red.shade600,
+                  width: 2,
+                ),
+              ),
               contentPadding: const EdgeInsets.symmetric(
-                horizontal: 10,
-                vertical: 10,
+                horizontal: 16,
+                vertical: 16,
               ),
             ),
             validator: (value) {
